@@ -4,6 +4,9 @@
 
 ProdVerdict compares Stripe subscription state to your database access flags, scans env var coverage, and fails CI when invariants break — no LLM in the evaluation path.
 
+**Website:** [prodverdict.com](https://prodverdict.com)
+
+[![npm](https://img.shields.io/npm/v/prodverdict.svg)](https://www.npmjs.com/package/prodverdict)
 [![CI](https://github.com/prodv-dev/prodverdict-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/prodv-dev/prodverdict-sdk/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -73,7 +76,7 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-sdk/packages/action@v0.0.2
+- uses: prodv-dev/prodverdict-sdk/packages/action@v0.1.0
   with:
     config: ./prodverdict.yml
     contract: access
@@ -85,6 +88,8 @@ npx prodverdict validate --config prodverdict.yml
 ```
 
 The action runs against **your repository** (not the SDK checkout), posts findings as a PR comment, and fails on high-severity access violations.
+
+Install from [GitHub Marketplace](https://github.com/marketplace/actions/prodverdict) or reference the tag directly as shown above.
 
 ## MCP (Cursor / Claude Code)
 
@@ -111,6 +116,18 @@ Tools: `check_access_contract`, `validate_config`, `suggest_fix`.
 | Duplicate customer | Same `stripe_customer_id` on multiple users |
 | Orphan customer | Active Stripe customer with no app user row |
 
+## Stack templates
+
+Copy the example closest to your stack, then adjust `prodverdict.yml` and `plans:` for your Stripe price IDs.
+
+| Example | Stack | Database table |
+|---------|-------|----------------|
+| [nextjs-stripe](examples/nextjs-stripe/) | Next.js + Stripe | `users` |
+| [supabase-stripe](examples/supabase-stripe/) | Supabase + Stripe | `profiles` |
+| [rails-stripe](examples/rails-stripe/) | Rails + Stripe | `users` |
+
+Each includes fixture scenarios (`pass` / `fail-revenue-leak`) runnable without credentials: `node examples/<name>/run-demo.mjs`.
+
 ## Monorepo layout
 
 | Path | Description |
@@ -120,6 +137,8 @@ Tools: `check_access_contract`, `validate_config`, `suggest_fix`.
 | `packages/action` | GitHub composite action |
 | `packages/mcp` | MCP server |
 | `examples/nextjs-stripe` | **Start here** — Next.js + Stripe golden example |
+| `examples/supabase-stripe` | Supabase Postgres + Stripe (`profiles` table) |
+| `examples/rails-stripe` | Rails + Stripe (`users` table) |
 | `test-env/` | Docker Postgres + pass/fail scenario seeds |
 | `fixtures/` | Minimal fixture data for unit-style runs |
 

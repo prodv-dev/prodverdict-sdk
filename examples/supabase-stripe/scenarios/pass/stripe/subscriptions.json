@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sub_alice_active",
+    "customerId": "cus_alice",
+    "status": "active",
+    "priceIds": ["price_1SupPro"]
+  },
+  {
+    "id": "sub_bob_canceled",
+    "customerId": "cus_bob",
+    "status": "canceled",
+    "priceIds": ["price_1SupStarter"]
+  }
+]

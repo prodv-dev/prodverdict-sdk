@@ -1,0 +1,22 @@
+version: 1
+contracts:
+  - type: access
+    source_of_truth: stripe
+    database:
+      url_env: DATABASE_URL
+      users_table: users
+      columns:
+        id: id
+        stripe_customer_id: stripe_customer_id
+        has_paid_access: has_paid_access
+        plan: plan
+    stripe:
+      secret_env: STRIPE_SECRET_KEY
+    plans:
+      price_1RailsStarter: starter
+      price_1RailsPro: pro
+    severity: high
+    fix: >
+      In app/controllers/webhooks/stripe_controller.rb, update the User record
+      on subscription events: set has_paid_access=true and sync plan from the
+      Stripe price. On customer.subscription.deleted, set has_paid_access=false.

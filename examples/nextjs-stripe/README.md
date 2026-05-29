@@ -65,7 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: prodv-dev/prodverdict-sdk/packages/action@v0.0.2
+      - uses: prodv-dev/prodverdict-sdk/packages/action@v0.1.0
         with:
           config: ./prodverdict.yml
           contract: access
