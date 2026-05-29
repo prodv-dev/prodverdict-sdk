@@ -1,0 +1,26 @@
+version: 1
+contracts:
+  - type: access
+    source_of_truth: stripe
+    database:
+      # Name of the env var that holds your read-only database connection string
+      url_env: DATABASE_URL
+      # The table that holds your app users
+      users_table: users
+      columns:
+        id: id
+        stripe_customer_id: stripe_customer_id
+        has_paid_access: has_paid_access
+        plan: plan
+    stripe:
+      # Name of the env var that holds your restricted Stripe secret key
+      secret_env: STRIPE_SECRET_KEY
+    # Map each Stripe price ID to the plan slug in your app database
+    plans:
+      price_1ABCxxxPro: pro
+      price_1ABCxxxStarter: starter
+    severity: high
+    fix: >
+      In your Stripe webhook handler (customer.subscription.updated /
+      customer.subscription.deleted), set has_paid_access = true/false and
+      update the plan column to match the active price.

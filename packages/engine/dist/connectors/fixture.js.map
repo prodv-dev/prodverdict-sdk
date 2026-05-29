@@ -1,0 +1,1 @@
+{"version":3,"file":"fixture.js","sourceRoot":"","sources":["../../src/connectors/fixture.ts"],"names":[],"mappings":"AAEA,iEAAiE;AACjE,MAAM,UAAU,yBAAyB,CAAC,aAAmC;IAC3E,OAAO;QACL,KAAK,CAAC,iBAAiB;YACrB,OAAO,aAAa,CAAC;QACvB,CAAC;KACF,CAAC;AACJ,CAAC;AAED,MAAM,UAAU,2BAA2B,CAAC,KAAgB;IAC1D,OAAO;QACL,KAAK,CAAC,SAAS;YACb,OAAO,KAAK,CAAC;QACf,CAAC;KACF,CAAC;AACJ,CAAC"}

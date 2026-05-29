@@ -1,0 +1,1 @@
+{"version":3,"file":"postgres-live.d.ts","sourceRoot":"","sources":["../../src/connectors/postgres-live.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,cAAc,EAAW,MAAM,YAAY,CAAC;AAC1D,OAAO,KAAK,EAAE,oBAAoB,EAAE,MAAM,qBAAqB,CAAC;AAShE,wBAAgB,wBAAwB,CAAC,GAAG,EAAE,oBAAoB,GAAG,cAAc,CAiDlF"}

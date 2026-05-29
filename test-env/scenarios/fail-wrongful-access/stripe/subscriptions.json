@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sub_active",
+    "customerId": "cus_active",
+    "status": "active",
+    "priceIds": ["price_pro"]
+  },
+  {
+    "id": "sub_canceled",
+    "customerId": "cus_canceled",
+    "status": "canceled",
+    "priceIds": ["price_starter"]
+  }
+]

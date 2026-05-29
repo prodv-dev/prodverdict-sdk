@@ -1,0 +1,21 @@
+version: 1
+contracts:
+  - type: access
+    source_of_truth: stripe
+    database:
+      url_env: DATABASE_URL
+      users_table: users
+      columns:
+        id: id
+        stripe_customer_id: stripe_customer_id
+        has_paid_access: has_paid_access
+        plan: plan
+    stripe:
+      secret_env: STRIPE_SECRET_KEY
+    plans:
+      price_pro: pro
+      price_starter: starter
+    severity: high
+    fix: >
+      Update your Stripe webhook handler to sync has_paid_access and plan
+      on customer.subscription.updated and customer.subscription.deleted.

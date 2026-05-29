@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sub_fixture_active",
+    "customerId": "cus_fixture_active",
+    "status": "active",
+    "priceIds": ["price_pro"]
+  },
+  {
+    "id": "sub_fixture_canceled",
+    "customerId": "cus_fixture_canceled",
+    "status": "canceled",
+    "priceIds": ["price_starter"]
+  }
+]

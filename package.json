@@ -1,0 +1,22 @@
+{
+  "name": "prodverdict",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @prodverdict/engine && npm run build -w prodverdict && npm run build -w @prodverdict/action && npm run build -w @prodverdict/mcp",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit -p tsconfig.base.json",
+    "test:env": "node test-env/run.mjs all",
+    "test:env:fixtures": "node test-env/run-fixtures.mjs",
+    "test:env:up": "node test-env/run.mjs up"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

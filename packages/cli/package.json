@@ -1,0 +1,16 @@
+{
+  "name": "prodverdict",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": {
+    "prodverdict": "./bin/prodverdict.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@prodverdict/engine": "*",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0"
+  }
+}

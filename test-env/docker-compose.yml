@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: prodverdict-test-db
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: prodverdict
+      POSTGRES_PASSWORD: prodverdict
+      POSTGRES_DB: prodverdict_test
+    volumes:
+      - ./sql/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U prodverdict -d prodverdict_test']
+      interval: 2s
+      timeout: 5s
+      retries: 10

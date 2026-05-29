@@ -1,0 +1,4 @@
+[
+  { "id": "user_alice", "stripe_customer_id": "cus_active", "has_paid_access": true, "plan": "starter" },
+  { "id": "user_bob", "stripe_customer_id": "cus_canceled", "has_paid_access": false, "plan": null }
+]

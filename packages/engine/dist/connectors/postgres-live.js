@@ -1,0 +1,51 @@
+import pg from 'pg';
+import { assertSqlIdentifier, assertSqlIdentifiers } from './sql-identifiers.js';
+function makeConnectorError(message) {
+    const err = new Error(message);
+    err.code = 'CONNECTOR_ERROR';
+    return err;
+}
+export function createLivePostgresReader(cfg) {
+    const connectionString = process.env[cfg.database.url_env];
+    if (!connectionString) {
+        throw makeConnectorError(`Missing required env var "${cfg.database.url_env}" for database connector. ` +
+            'Provide a read-only database connection string.');
+    }
+    const cols = cfg.database.columns;
+    const table = cfg.database.users_table;
+    assertSqlIdentifier(table, 'database.users_table');
+    assertSqlIdentifiers(cols, 'database.columns');
+    const pool = new pg.Pool({ connectionString, max: 2 });
+    let closed = false;
+    return {
+        async listUsers() {
+            if (closed) {
+                throw makeConnectorError('Database reader is closed.');
+            }
+            let client;
+            try {
+                client = await pool.connect();
+                const res = await client.query(`SELECT ${cols.id}, ${cols.stripe_customer_id}, ${cols.has_paid_access}, ${cols.plan} FROM ${table}`);
+                return res.rows.map((row) => ({
+                    id: String(row[cols.id]),
+                    stripeCustomerId: row[cols.stripe_customer_id],
+                    hasPaidAccess: Boolean(row[cols.has_paid_access]),
+                    plan: row[cols.plan],
+                }));
+            }
+            catch (err) {
+                throw makeConnectorError(`Database query failed: ${String(err)}`);
+            }
+            finally {
+                client?.release();
+            }
+        },
+        async close() {
+            if (!closed) {
+                closed = true;
+                await pool.end();
+            }
+        },
+    };
+}
+//# sourceMappingURL=postgres-live.js.map

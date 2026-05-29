@@ -1,0 +1,14 @@
+[
+  {
+    "id": "user_1",
+    "stripe_customer_id": "cus_fixture_active",
+    "has_paid_access": true,
+    "plan": "pro"
+  },
+  {
+    "id": "user_2",
+    "stripe_customer_id": "cus_fixture_canceled",
+    "has_paid_access": false,
+    "plan": null
+  }
+]
