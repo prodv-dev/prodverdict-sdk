@@ -4,6 +4,7 @@ import { resolve } from 'path';
 import {
   parseConfigFile,
   evaluateAccess,
+  evaluateConfig,
   aggregateVerdict,
   createLiveStripeReader,
   createLivePostgresReader,
@@ -12,70 +13,98 @@ import {
 } from '@prodverdict/engine';
 import { buildComment, extractCommentMarker } from './comment.js';
 
+/** Caller repo root — never the action/SDK checkout directory. */
+function workspaceRoot(): string {
+  return process.env['GITHUB_WORKSPACE'] ?? process.cwd();
+}
+
 async function run(): Promise<void> {
   try {
-    const configPath = resolve(core.getInput('config') || './prodverdict.yml');
+    const configInput = core.getInput('config') || './prodverdict.yml';
+    const configPath = resolve(workspaceRoot(), configInput);
     const contractInput = (core.getInput('contract') || 'access').toLowerCase();
     const strict = (core.getInput('strict') || 'false').toLowerCase() === 'true';
 
-    if (contractInput !== 'access') {
-      core.setFailed(`Unknown contract "${contractInput}". Only "access" is supported in Phase 1.`);
+    if (contractInput !== 'access' && contractInput !== 'config') {
+      core.setFailed(`Unknown contract "${contractInput}". Supported: access, config.`);
       return;
     }
 
     core.info(`Loading config from ${configPath}`);
     const cfg = parseConfigFile(configPath);
-    const accessCfg = cfg.contracts.find((c) => c.type === 'access');
-    if (!accessCfg) {
-      core.setFailed('No access contract found in prodverdict.yml.');
-      return;
+
+    let result: CheckResult;
+
+    if (contractInput === 'config') {
+      const configCfg = cfg.contracts.find((c) => c.type === 'config');
+      if (!configCfg) {
+        core.setFailed('No config contract found in prodverdict.yml.');
+        return;
+      }
+
+      core.info('Running config contract check…');
+      const findings = await evaluateConfig(configCfg, {
+        repoRoot: workspaceRoot(),
+        env: process.env as Record<string, string | undefined>,
+      });
+      const verdict = aggregateVerdict(findings);
+      result = {
+        contract: 'config',
+        verdict,
+        findings,
+        evaluatedAt: new Date().toISOString(),
+      };
+    } else {
+      const accessCfg = cfg.contracts.find((c) => c.type === 'access');
+      if (!accessCfg) {
+        core.setFailed('No access contract found in prodverdict.yml.');
+        return;
+      }
+
+      core.info('Connecting to Stripe and database (read-only)…');
+      const sources = {
+        stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
+        database: createLivePostgresReader(accessCfg),
+      };
+
+      let findings;
+      try {
+        findings = await evaluateAccess(accessCfg, sources);
+      } finally {
+        await sources.database.close?.();
+      }
+      const verdict = aggregateVerdict(findings);
+      result = {
+        contract: 'access',
+        verdict,
+        findings,
+        evaluatedAt: new Date().toISOString(),
+      };
     }
 
-    core.info('Connecting to Stripe and database (read-only)…');
-    const sources = {
-      stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
-      database: createLivePostgresReader(accessCfg),
-    };
+    core.info(`Verdict: ${result.verdict.toUpperCase()} — ${result.findings.length} finding(s)`);
 
-    let findings;
-    try {
-      findings = await evaluateAccess(accessCfg, sources);
-    } finally {
-      await sources.database.close?.();
-    }
-    const verdict = aggregateVerdict(findings);
-
-    const result: CheckResult = {
-      contract: 'access',
-      verdict,
-      findings,
-      evaluatedAt: new Date().toISOString(),
-    };
-
-    core.info(`Verdict: ${verdict.toUpperCase()} — ${findings.length} finding(s)`);
-
-    // Set outputs
-    core.setOutput('verdict', verdict);
-    core.setOutput('findings_count', String(findings.length));
+    core.setOutput('verdict', result.verdict);
+    core.setOutput('findings_count', String(result.findings.length));
     core.setOutput('result_json', JSON.stringify(result));
 
-    // Post PR comment if running in a pull_request context
     await maybePostComment(result);
 
-    if (verdict === 'fail') {
+    const label = result.contract === 'config' ? 'Config' : 'Access';
+    if (result.verdict === 'fail') {
       core.setFailed(
-        `Access contract FAILED — ${findings.filter((f) => f.severity === 'high').length} high-severity finding(s). ` +
+        `${label} contract FAILED — ${result.findings.filter((f) => f.severity === 'high').length} high-severity finding(s). ` +
           'See comment for details.',
       );
-    } else if (verdict === 'warn') {
-      const msg = `Access contract passed with warnings — ${findings.length} finding(s).`;
+    } else if (result.verdict === 'warn') {
+      const msg = `${label} contract passed with warnings — ${result.findings.length} finding(s).`;
       if (strict) {
         core.setFailed(`${msg} (--strict enabled)`);
       } else {
         core.warning(msg);
       }
     } else {
-      core.info('Access contract PASSED — no violations found.');
+      core.info(`${label} contract PASSED — no violations found.`);
     }
   } catch (err) {
     if (isProdVerdictError(err)) {
@@ -109,7 +138,6 @@ async function maybePostComment(result: CheckResult): Promise<void> {
   const marker = extractCommentMarker();
   const body = buildComment(result);
 
-  // Find and update existing comment, or create new one
   const { data: comments } = await octokit.rest.issues.listComments({
     owner,
     repo,

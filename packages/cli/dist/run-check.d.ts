@@ -9,6 +9,8 @@ export interface RunCheckOptions {
     fixturesStripe?: boolean | undefined;
     fixturesStripeDir?: string | undefined;
     strict?: boolean | undefined;
+    /** Repo root for config contract source scanning (default: cwd) */
+    repoRoot?: string | undefined;
 }
 export declare function runCheck(opts: RunCheckOptions): Promise<{
     result: CheckResult;

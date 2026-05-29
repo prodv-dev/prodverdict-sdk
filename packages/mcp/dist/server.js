@@ -39,7 +39,13 @@ server.tool('check_access_contract', 'Run the ProdVerdict access contract check.
             stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
             database: createLivePostgresReader(accessCfg),
         };
-        const findings = await evaluateAccess(accessCfg, sources);
+        let findings;
+        try {
+            findings = await evaluateAccess(accessCfg, sources);
+        }
+        finally {
+            await sources.database.close?.();
+        }
         const verdict = aggregateVerdict(findings);
         const result = {
             contract: 'access',

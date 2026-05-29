@@ -2,6 +2,7 @@ import { dirname, resolve, basename } from 'path';
 import {
   parseConfigFile,
   evaluateAccess,
+  evaluateConfig,
   aggregateVerdict,
   createLiveStripeReader,
   createLivePostgresReader,
@@ -12,6 +13,7 @@ import {
   defaultFixturePaths,
   type CheckResult,
   type AccessDataSources,
+  type ConfigDataSources,
 } from '@prodverdict/engine';
 
 export interface RunCheckOptions {
@@ -24,51 +26,76 @@ export interface RunCheckOptions {
   fixturesStripe?: boolean | undefined;
   fixturesStripeDir?: string | undefined;
   strict?: boolean | undefined;
+  /** Repo root for config contract source scanning (default: cwd) */
+  repoRoot?: string | undefined;
 }
 
 const EXIT_PASS = 0;
 const EXIT_FAIL = 1;
-const EXIT_ERROR = 2;
 
 export async function runCheck(opts: RunCheckOptions): Promise<{ result: CheckResult; exitCode: number }> {
   const configPath = resolve(opts.config);
   const cfg = parseConfigFile(configPath);
 
   const contract = (opts.contract ?? 'access').toLowerCase();
-  if (contract !== 'access') {
-    throw makeUsageError(`Unknown contract type "${contract}". Currently only "access" is supported.`);
-  }
 
-  const accessCfg = cfg.contracts.find((c) => c.type === 'access');
-  if (!accessCfg) {
-    throw makeUsageError('No access contract defined in prodverdict.yml.');
-  }
+  if (contract === 'config') {
+    const configCfg = cfg.contracts.find((c) => c.type === 'config');
+    if (!configCfg) {
+      throw makeUsageError('No config contract defined in prodverdict.yml.');
+    }
 
-  const sources = opts.fixtures
-    ? buildFixtureSources(configPath, opts.fixturesDir)
-    : opts.fixturesStripe
-      ? buildHybridSources(accessCfg, opts.fixturesStripeDir ?? resolve(dirname(configPath), 'scenarios/pass'))
-      : {
-          stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
-          database: createLivePostgresReader(accessCfg),
-        };
+    const sources: ConfigDataSources = {
+      repoRoot: opts.repoRoot ?? process.cwd(),
+      env: process.env as Record<string, string | undefined>,
+    };
 
-  try {
-    const findings = await evaluateAccess(accessCfg, sources);
+    const findings = await evaluateConfig(configCfg, sources);
     const verdict = aggregateVerdict(findings);
 
     const result: CheckResult = {
-      contract: 'access',
+      contract: 'config',
       verdict,
       findings,
       evaluatedAt: new Date().toISOString(),
     };
 
-    const exitCode = resolveExitCode(verdict, opts.strict ?? false);
-    return { result, exitCode };
-  } finally {
-    await sources.database.close?.();
+    return { result, exitCode: resolveExitCode(verdict, opts.strict ?? false) };
   }
+
+  if (contract === 'access') {
+    const accessCfg = cfg.contracts.find((c) => c.type === 'access');
+    if (!accessCfg) {
+      throw makeUsageError('No access contract defined in prodverdict.yml.');
+    }
+
+    const sources = opts.fixtures
+      ? buildFixtureSources(configPath, opts.fixturesDir)
+      : opts.fixturesStripe
+        ? buildHybridSources(accessCfg, opts.fixturesStripeDir ?? resolve(dirname(configPath), 'scenarios/pass'))
+        : {
+            stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
+            database: createLivePostgresReader(accessCfg),
+          };
+
+    try {
+      const findings = await evaluateAccess(accessCfg, sources);
+      const verdict = aggregateVerdict(findings);
+
+      const result: CheckResult = {
+        contract: 'access',
+        verdict,
+        findings,
+        evaluatedAt: new Date().toISOString(),
+      };
+
+      return { result, exitCode: resolveExitCode(verdict, opts.strict ?? false) };
+    } finally {
+      await sources.database.close?.();
+    }
+  }
+
+  throw makeUsageError(`Unknown contract type "${contract}". Supported: access, config.`);
 }
 
 function resolveExitCode(verdict: CheckResult['verdict'], strict: boolean): number {

@@ -1,8 +1,12 @@
-name: ProdVerdict Access Check
+name: ProdVerdict
 description: >
-  Verify Stripe subscription state matches app access controls. Fails the
-  check on high-severity mismatches and posts a findings comment on pull requests.
-author: ProdVerdict
+  Deterministic production contract checks for AI-assisted SaaS. Verifies Stripe
+  subscription state matches app access controls (access contract) and environment
+  variables are correctly declared (config contract). Posts findings as PR comments.
+author: prodv-dev
+branding:
+  icon: shield
+  color: green
 
 inputs:
   config:
@@ -10,7 +14,7 @@ inputs:
     required: false
     default: ./prodverdict.yml
   contract:
-    description: Contract to run (currently only "access" is supported)
+    description: Contract to run — "access" (Stripe vs DB) or "config" (env vars)
     required: false
     default: access
   strict:
@@ -31,10 +35,10 @@ runs:
       working-directory: ${{ github.action_path }}/../..
       run: npm ci && npm run build
 
-    - name: Run access contract check
+    - name: Run contract check
       shell: bash
-      working-directory: ${{ github.action_path }}/../..
-      run: node packages/action/dist/index.js
+      working-directory: ${{ github.workspace }}
+      run: node "${{ github.action_path }}/dist/index.js"
       env:
         INPUT_CONFIG: ${{ inputs.config }}
         INPUT_CONTRACT: ${{ inputs.contract }}

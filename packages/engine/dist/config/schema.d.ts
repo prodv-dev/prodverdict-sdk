@@ -93,9 +93,123 @@ declare const AccessContractSchema: z.ZodObject<{
     fix?: string | undefined;
 }>;
 export type AccessContractConfig = z.infer<typeof AccessContractSchema>;
+declare const ConfigRuleSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
+    type: z.ZodLiteral<"required">;
+    name: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    severity: z.ZodOptional<z.ZodEnum<["high", "medium", "low"]>>;
+}, "strip", z.ZodTypeAny, {
+    type: "required";
+    name: string;
+    severity?: "high" | "medium" | "low" | undefined;
+    description?: string | undefined;
+}, {
+    type: "required";
+    name: string;
+    severity?: "high" | "medium" | "low" | undefined;
+    description?: string | undefined;
+}>, z.ZodObject<{
+    type: z.ZodLiteral<"not_default">;
+    name: z.ZodString;
+    forbidden_values: z.ZodArray<z.ZodString, "many">;
+    severity: z.ZodOptional<z.ZodEnum<["high", "medium", "low"]>>;
+}, "strip", z.ZodTypeAny, {
+    type: "not_default";
+    name: string;
+    forbidden_values: string[];
+    severity?: "high" | "medium" | "low" | undefined;
+}, {
+    type: "not_default";
+    name: string;
+    forbidden_values: string[];
+    severity?: "high" | "medium" | "low" | undefined;
+}>]>;
+export type ConfigRule = z.infer<typeof ConfigRuleSchema>;
+declare const ConfigContractSchema: z.ZodObject<{
+    type: z.ZodLiteral<"config">;
+    /** Default severity for findings */
+    severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+    /** Explicit rules about individual env vars */
+    rules: z.ZodDefault<z.ZodArray<z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
+        type: z.ZodLiteral<"required">;
+        name: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+        severity: z.ZodOptional<z.ZodEnum<["high", "medium", "low"]>>;
+    }, "strip", z.ZodTypeAny, {
+        type: "required";
+        name: string;
+        severity?: "high" | "medium" | "low" | undefined;
+        description?: string | undefined;
+    }, {
+        type: "required";
+        name: string;
+        severity?: "high" | "medium" | "low" | undefined;
+        description?: string | undefined;
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"not_default">;
+        name: z.ZodString;
+        forbidden_values: z.ZodArray<z.ZodString, "many">;
+        severity: z.ZodOptional<z.ZodEnum<["high", "medium", "low"]>>;
+    }, "strip", z.ZodTypeAny, {
+        type: "not_default";
+        name: string;
+        forbidden_values: string[];
+        severity?: "high" | "medium" | "low" | undefined;
+    }, {
+        type: "not_default";
+        name: string;
+        forbidden_values: string[];
+        severity?: "high" | "medium" | "low" | undefined;
+    }>]>, "many">>;
+    /** Scan source code for process.env.* references and check against .env.example */
+    scan_references: z.ZodDefault<z.ZodBoolean>;
+    /** Path to the env example file (relative to repo root) */
+    env_example_file: z.ZodDefault<z.ZodString>;
+    /** Warn if a required var's value looks like a placeholder */
+    check_placeholders: z.ZodDefault<z.ZodBoolean>;
+    /** Variable names to ignore during reference scan */
+    ignore_vars: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+}, "strip", z.ZodTypeAny, {
+    type: "config";
+    severity: "high" | "medium" | "low";
+    rules: ({
+        type: "required";
+        name: string;
+        severity?: "high" | "medium" | "low" | undefined;
+        description?: string | undefined;
+    } | {
+        type: "not_default";
+        name: string;
+        forbidden_values: string[];
+        severity?: "high" | "medium" | "low" | undefined;
+    })[];
+    scan_references: boolean;
+    env_example_file: string;
+    check_placeholders: boolean;
+    ignore_vars: string[];
+}, {
+    type: "config";
+    severity?: "high" | "medium" | "low" | undefined;
+    rules?: ({
+        type: "required";
+        name: string;
+        severity?: "high" | "medium" | "low" | undefined;
+        description?: string | undefined;
+    } | {
+        type: "not_default";
+        name: string;
+        forbidden_values: string[];
+        severity?: "high" | "medium" | "low" | undefined;
+    })[] | undefined;
+    scan_references?: boolean | undefined;
+    env_example_file?: string | undefined;
+    check_placeholders?: boolean | undefined;
+    ignore_vars?: string[] | undefined;
+}>;
+export type ConfigContractConfig = z.infer<typeof ConfigContractSchema>;
 export declare const ProdVerdictConfigSchema: z.ZodObject<{
     version: z.ZodLiteral<1>;
-    contracts: z.ZodArray<z.ZodObject<{
+    contracts: z.ZodArray<z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
         type: z.ZodLiteral<"access">;
         source_of_truth: z.ZodDefault<z.ZodLiteral<"stripe">>;
         database: z.ZodObject<{
@@ -187,10 +301,90 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         plans?: Record<string, string> | undefined;
         severity?: "high" | "medium" | "low" | undefined;
         fix?: string | undefined;
-    }>, "many">;
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"config">;
+        /** Default severity for findings */
+        severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+        /** Explicit rules about individual env vars */
+        rules: z.ZodDefault<z.ZodArray<z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
+            type: z.ZodLiteral<"required">;
+            name: z.ZodString;
+            description: z.ZodOptional<z.ZodString>;
+            severity: z.ZodOptional<z.ZodEnum<["high", "medium", "low"]>>;
+        }, "strip", z.ZodTypeAny, {
+            type: "required";
+            name: string;
+            severity?: "high" | "medium" | "low" | undefined;
+            description?: string | undefined;
+        }, {
+            type: "required";
+            name: string;
+            severity?: "high" | "medium" | "low" | undefined;
+            description?: string | undefined;
+        }>, z.ZodObject<{
+            type: z.ZodLiteral<"not_default">;
+            name: z.ZodString;
+            forbidden_values: z.ZodArray<z.ZodString, "many">;
+            severity: z.ZodOptional<z.ZodEnum<["high", "medium", "low"]>>;
+        }, "strip", z.ZodTypeAny, {
+            type: "not_default";
+            name: string;
+            forbidden_values: string[];
+            severity?: "high" | "medium" | "low" | undefined;
+        }, {
+            type: "not_default";
+            name: string;
+            forbidden_values: string[];
+            severity?: "high" | "medium" | "low" | undefined;
+        }>]>, "many">>;
+        /** Scan source code for process.env.* references and check against .env.example */
+        scan_references: z.ZodDefault<z.ZodBoolean>;
+        /** Path to the env example file (relative to repo root) */
+        env_example_file: z.ZodDefault<z.ZodString>;
+        /** Warn if a required var's value looks like a placeholder */
+        check_placeholders: z.ZodDefault<z.ZodBoolean>;
+        /** Variable names to ignore during reference scan */
+        ignore_vars: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        type: "config";
+        severity: "high" | "medium" | "low";
+        rules: ({
+            type: "required";
+            name: string;
+            severity?: "high" | "medium" | "low" | undefined;
+            description?: string | undefined;
+        } | {
+            type: "not_default";
+            name: string;
+            forbidden_values: string[];
+            severity?: "high" | "medium" | "low" | undefined;
+        })[];
+        scan_references: boolean;
+        env_example_file: string;
+        check_placeholders: boolean;
+        ignore_vars: string[];
+    }, {
+        type: "config";
+        severity?: "high" | "medium" | "low" | undefined;
+        rules?: ({
+            type: "required";
+            name: string;
+            severity?: "high" | "medium" | "low" | undefined;
+            description?: string | undefined;
+        } | {
+            type: "not_default";
+            name: string;
+            forbidden_values: string[];
+            severity?: "high" | "medium" | "low" | undefined;
+        })[] | undefined;
+        scan_references?: boolean | undefined;
+        env_example_file?: string | undefined;
+        check_placeholders?: boolean | undefined;
+        ignore_vars?: string[] | undefined;
+    }>]>, "many">;
 }, "strip", z.ZodTypeAny, {
     version: 1;
-    contracts: {
+    contracts: ({
         type: "access";
         stripe: {
             secret_env: string;
@@ -209,10 +403,28 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         severity: "high" | "medium" | "low";
         plans?: Record<string, string> | undefined;
         fix?: string | undefined;
-    }[];
+    } | {
+        type: "config";
+        severity: "high" | "medium" | "low";
+        rules: ({
+            type: "required";
+            name: string;
+            severity?: "high" | "medium" | "low" | undefined;
+            description?: string | undefined;
+        } | {
+            type: "not_default";
+            name: string;
+            forbidden_values: string[];
+            severity?: "high" | "medium" | "low" | undefined;
+        })[];
+        scan_references: boolean;
+        env_example_file: string;
+        check_placeholders: boolean;
+        ignore_vars: string[];
+    })[];
 }, {
     version: 1;
-    contracts: {
+    contracts: ({
         type: "access";
         stripe: {
             secret_env: string;
@@ -231,7 +443,25 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         plans?: Record<string, string> | undefined;
         severity?: "high" | "medium" | "low" | undefined;
         fix?: string | undefined;
-    }[];
+    } | {
+        type: "config";
+        severity?: "high" | "medium" | "low" | undefined;
+        rules?: ({
+            type: "required";
+            name: string;
+            severity?: "high" | "medium" | "low" | undefined;
+            description?: string | undefined;
+        } | {
+            type: "not_default";
+            name: string;
+            forbidden_values: string[];
+            severity?: "high" | "medium" | "low" | undefined;
+        })[] | undefined;
+        scan_references?: boolean | undefined;
+        env_example_file?: string | undefined;
+        check_placeholders?: boolean | undefined;
+        ignore_vars?: string[] | undefined;
+    })[];
 }>;
 export type ProdVerdictConfig = z.infer<typeof ProdVerdictConfigSchema>;
 export {};

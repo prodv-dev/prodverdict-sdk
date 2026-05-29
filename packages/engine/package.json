@@ -1,6 +1,8 @@
 {
   "name": "@prodverdict/engine",
   "version": "0.0.1",
+  "description": "Core evaluation engine for ProdVerdict production contracts",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,7 +12,19 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prodv-dev/prodverdict-sdk.git",
+    "directory": "packages/engine"
+  },
+  "homepage": "https://github.com/prodv-dev/prodverdict-sdk#readme",
+  "keywords": ["prodverdict", "production-contracts", "stripe", "saas", "access-control"],
   "scripts": {
+    "prebuild": "node -e \"try{require('fs').unlinkSync('tsconfig.tsbuildinfo')}catch(e){}\"",
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {

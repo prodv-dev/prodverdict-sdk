@@ -57,7 +57,12 @@ server.tool(
         database: createLivePostgresReader(accessCfg),
       };
 
-      const findings = await evaluateAccess(accessCfg, sources);
+      let findings;
+      try {
+        findings = await evaluateAccess(accessCfg, sources);
+      } finally {
+        await sources.database.close?.();
+      }
       const verdict = aggregateVerdict(findings);
 
       const result: CheckResult = {

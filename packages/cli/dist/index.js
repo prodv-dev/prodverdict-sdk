@@ -10,13 +10,14 @@ program
     .version('0.0.1');
 program
     .command('check [contract]')
-    .description('Run contract checks (default: access). Use --format json for machine-readable output.')
+    .description('Run contract checks: access (default) or config. Use --format json for machine-readable output.')
     .option('-c, --config <path>', 'Path to prodverdict.yml', './prodverdict.yml')
     .option('-f, --format <format>', 'Output format: text or json', 'text')
     .option('--fixtures', 'Use fixture JSON from fixtures/ instead of live credentials')
     .option('--fixtures-dir <path>', 'Directory containing stripe/ and db/ fixture JSON')
     .option('--fixtures-stripe [dir]', 'Use live Postgres + Stripe fixture JSON from dir (default: scenarios/pass next to config)')
     .option('--strict', 'Exit with code 1 on warn verdict (medium/low findings only)')
+    .option('--repo-root <path>', 'Repo root for source scanning (config contract; default: cwd)')
     .action(async (contract, options) => {
     try {
         const format = options.format === 'json' ? 'json' : 'text';
@@ -34,6 +35,7 @@ program
             fixturesStripe: Boolean(options.fixturesStripe),
             fixturesStripeDir,
             strict: options.strict,
+            repoRoot: options.repoRoot,
         });
         if (format === 'json') {
             process.stdout.write(JSON.stringify(result, null, 2) + '\n');

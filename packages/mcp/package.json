@@ -1,16 +1,30 @@
 {
   "name": "@prodverdict/mcp",
   "version": "0.0.1",
+  "description": "MCP server for ProdVerdict — AI agent integration for production contract checks",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "prodverdict-mcp": "./bin/mcp.js"
   },
+  "files": [
+    "dist",
+    "bin",
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prodv-dev/prodverdict-sdk.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/prodv-dev/prodverdict-sdk#readme",
+  "keywords": ["prodverdict", "mcp", "model-context-protocol", "production-contracts", "ai-agent"],
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@prodverdict/engine": "*",
+    "@prodverdict/engine": "0.0.1",
     "zod": "^3.23.8"
   }
 }
