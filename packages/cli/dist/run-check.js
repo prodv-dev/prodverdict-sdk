@@ -1,5 +1,6 @@
 import { dirname, resolve, basename } from 'path';
-import { parseConfigFile, evaluateAccess, evaluateConfig, aggregateVerdict, createLiveStripeReader, createLivePostgresReader, createFixtureStripeReader, createFixtureDatabaseReader, loadFixtureSubscriptions, loadFixtureUsers, defaultFixturePaths, } from '@prodverdict/engine';
+import { uploadCheckResult, readUploadEnv } from './upload.js';
+import { parseConfigFile, evaluateAccess, evaluateConfig, aggregateVerdict, createLiveBillingReader, createLivePostgresReader, createFixtureStripeReader, createFixtureDatabaseReader, loadFixtureSubscriptions, loadFixtureUsers, defaultFixturePaths, } from '@prodverdict/engine';
 const EXIT_PASS = 0;
 const EXIT_FAIL = 1;
 export async function runCheck(opts) {
@@ -23,6 +24,7 @@ export async function runCheck(opts) {
             findings,
             evaluatedAt: new Date().toISOString(),
         };
+        await maybeUpload(result, opts.upload);
         return { result, exitCode: resolveExitCode(verdict, opts.strict ?? false) };
     }
     if (contract === 'access') {
@@ -31,11 +33,11 @@ export async function runCheck(opts) {
             throw makeUsageError('No access contract defined in prodverdict.yml.');
         }
         const sources = opts.fixtures
-            ? buildFixtureSources(configPath, opts.fixturesDir)
+            ? buildFixtureSources(configPath, accessCfg, opts.fixturesDir)
             : opts.fixturesStripe
                 ? buildHybridSources(accessCfg, opts.fixturesStripeDir ?? resolve(dirname(configPath), 'scenarios/pass'))
                 : {
-                    stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
+                    billing: createLiveBillingReader(accessCfg),
                     database: createLivePostgresReader(accessCfg),
                 };
         try {
@@ -47,6 +49,7 @@ export async function runCheck(opts) {
                 findings,
                 evaluatedAt: new Date().toISOString(),
             };
+            await maybeUpload(result, opts.upload);
             return { result, exitCode: resolveExitCode(verdict, opts.strict ?? false) };
         }
         finally {
@@ -54,6 +57,15 @@ export async function runCheck(opts) {
         }
     }
     throw makeUsageError(`Unknown contract type "${contract}". Supported: access, config.`);
+}
+async function maybeUpload(result, uploadFlag) {
+    const env = readUploadEnv();
+    if (!uploadFlag && !env)
+        return;
+    if (!env) {
+        throw makeUsageError('Upload requested but PRODVERDICT_API_URL, PRODVERDICT_API_KEY, and PRODVERDICT_PROJECT_ID are required.');
+    }
+    await uploadCheckResult(result, { ...env, source: 'cli' });
 }
 function resolveExitCode(verdict, strict) {
     if (verdict === 'fail')
@@ -77,20 +89,22 @@ function resolveFixturesDir(configPath, explicit) {
 }
 function buildHybridSources(accessCfg, stripeFixturesDir) {
     const dir = resolve(stripeFixturesDir);
-    const paths = defaultFixturePaths(dir);
+    const billingKind = accessCfg.source_of_truth === 'paddle' ? 'paddle' : 'stripe';
+    const paths = defaultFixturePaths(dir, billingKind);
     const subscriptions = loadFixtureSubscriptions(paths.stripeSubscriptions);
     return {
-        stripe: createFixtureStripeReader(subscriptions),
+        billing: createFixtureStripeReader(subscriptions),
         database: createLivePostgresReader(accessCfg),
     };
 }
-function buildFixtureSources(configPath, fixturesDir) {
+function buildFixtureSources(configPath, accessCfg, fixturesDir) {
     const dir = resolveFixturesDir(configPath, fixturesDir);
-    const paths = defaultFixturePaths(dir);
+    const billingKind = accessCfg.source_of_truth === 'paddle' ? 'paddle' : 'stripe';
+    const paths = defaultFixturePaths(dir, billingKind);
     const subscriptions = loadFixtureSubscriptions(paths.stripeSubscriptions);
     const users = loadFixtureUsers(paths.dbUsers);
     return {
-        stripe: createFixtureStripeReader(subscriptions),
+        billing: createFixtureStripeReader(subscriptions),
         database: createFixtureDatabaseReader(users),
     };
 }

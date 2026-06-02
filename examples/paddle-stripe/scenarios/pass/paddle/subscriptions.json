@@ -1,0 +1,8 @@
+[
+  {
+    "id": "sub_alice_active",
+    "customerId": "ctm_alice",
+    "status": "active",
+    "priceIds": ["pri_01NextPro"]
+  }
+]

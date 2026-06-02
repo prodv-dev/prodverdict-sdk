@@ -1,10 +1,11 @@
 import { dirname, resolve, basename } from 'path';
+import { uploadCheckResult, readUploadEnv } from './upload.js';
 import {
   parseConfigFile,
   evaluateAccess,
   evaluateConfig,
   aggregateVerdict,
-  createLiveStripeReader,
+  createLiveBillingReader,
   createLivePostgresReader,
   createFixtureStripeReader,
   createFixtureDatabaseReader,
@@ -28,6 +29,8 @@ export interface RunCheckOptions {
   strict?: boolean | undefined;
   /** Repo root for config contract source scanning (default: cwd) */
   repoRoot?: string | undefined;
+  /** POST result to PRODVERDICT_API_URL when env vars set */
+  upload?: boolean | undefined;
 }
 
 const EXIT_PASS = 0;
@@ -60,6 +63,7 @@ export async function runCheck(opts: RunCheckOptions): Promise<{ result: CheckRe
       evaluatedAt: new Date().toISOString(),
     };
 
+    await maybeUpload(result, opts.upload);
     return { result, exitCode: resolveExitCode(verdict, opts.strict ?? false) };
   }
 
@@ -70,11 +74,11 @@ export async function runCheck(opts: RunCheckOptions): Promise<{ result: CheckRe
     }
 
     const sources = opts.fixtures
-      ? buildFixtureSources(configPath, opts.fixturesDir)
+      ? buildFixtureSources(configPath, accessCfg, opts.fixturesDir)
       : opts.fixturesStripe
         ? buildHybridSources(accessCfg, opts.fixturesStripeDir ?? resolve(dirname(configPath), 'scenarios/pass'))
         : {
-            stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
+            billing: createLiveBillingReader(accessCfg),
             database: createLivePostgresReader(accessCfg),
           };
 
@@ -89,6 +93,7 @@ export async function runCheck(opts: RunCheckOptions): Promise<{ result: CheckRe
         evaluatedAt: new Date().toISOString(),
       };
 
+      await maybeUpload(result, opts.upload);
       return { result, exitCode: resolveExitCode(verdict, opts.strict ?? false) };
     } finally {
       await sources.database.close?.();
@@ -96,6 +101,17 @@ export async function runCheck(opts: RunCheckOptions): Promise<{ result: CheckRe
   }
 
   throw makeUsageError(`Unknown contract type "${contract}". Supported: access, config.`);
+}
+
+async function maybeUpload(result: CheckResult, uploadFlag?: boolean): Promise<void> {
+  const env = readUploadEnv();
+  if (!uploadFlag && !env) return;
+  if (!env) {
+    throw makeUsageError(
+      'Upload requested but PRODVERDICT_API_URL, PRODVERDICT_API_KEY, and PRODVERDICT_PROJECT_ID are required.',
+    );
+  }
+  await uploadCheckResult(result, { ...env, source: 'cli' });
 }
 
 function resolveExitCode(verdict: CheckResult['verdict'], strict: boolean): number {
@@ -122,21 +138,27 @@ function buildHybridSources(
   stripeFixturesDir: string,
 ): AccessDataSources {
   const dir = resolve(stripeFixturesDir);
-  const paths = defaultFixturePaths(dir);
+  const billingKind = accessCfg.source_of_truth === 'paddle' ? 'paddle' : 'stripe';
+  const paths = defaultFixturePaths(dir, billingKind);
   const subscriptions = loadFixtureSubscriptions(paths.stripeSubscriptions);
   return {
-    stripe: createFixtureStripeReader(subscriptions),
+    billing: createFixtureStripeReader(subscriptions),
     database: createLivePostgresReader(accessCfg),
   };
 }
 
-function buildFixtureSources(configPath: string, fixturesDir?: string): AccessDataSources {
+function buildFixtureSources(
+  configPath: string,
+  accessCfg: Parameters<typeof createLivePostgresReader>[0],
+  fixturesDir?: string,
+): AccessDataSources {
   const dir = resolveFixturesDir(configPath, fixturesDir);
-  const paths = defaultFixturePaths(dir);
+  const billingKind = accessCfg.source_of_truth === 'paddle' ? 'paddle' : 'stripe';
+  const paths = defaultFixturePaths(dir, billingKind);
   const subscriptions = loadFixtureSubscriptions(paths.stripeSubscriptions);
   const users = loadFixtureUsers(paths.dbUsers);
   return {
-    stripe: createFixtureStripeReader(subscriptions),
+    billing: createFixtureStripeReader(subscriptions),
     database: createFixtureDatabaseReader(users),
   };
 }

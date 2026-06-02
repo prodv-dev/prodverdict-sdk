@@ -47,7 +47,7 @@ function makeUser(overrides: Partial<AppUser> = {}): AppUser {
 describe('evaluateAccess — pass cases', () => {
   it('returns no findings when everything is aligned', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub()]),
+      billing: createFixtureStripeReader([makeSub()]),
       database: createFixtureDatabaseReader([makeUser()]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -56,7 +56,7 @@ describe('evaluateAccess — pass cases', () => {
 
   it('returns no findings for canceled sub + no access', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ status: 'canceled' })]),
+      billing: createFixtureStripeReader([makeSub({ status: 'canceled' })]),
       database: createFixtureDatabaseReader([makeUser({ hasPaidAccess: false, plan: null })]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -65,7 +65,7 @@ describe('evaluateAccess — pass cases', () => {
 
   it('ignores users with no stripe_customer_id', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([]),
+      billing: createFixtureStripeReader([]),
       database: createFixtureDatabaseReader([makeUser({ stripeCustomerId: null, hasPaidAccess: false })]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -76,7 +76,7 @@ describe('evaluateAccess — pass cases', () => {
 describe('evaluateAccess — revenue leak (active sub, no access)', () => {
   it('produces a high finding when active sub + has_paid_access=false', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ status: 'active' })]),
+      billing: createFixtureStripeReader([makeSub({ status: 'active' })]),
       database: createFixtureDatabaseReader([makeUser({ hasPaidAccess: false })]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -88,7 +88,7 @@ describe('evaluateAccess — revenue leak (active sub, no access)', () => {
 
   it('triggers for trialing subscriptions too', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ status: 'trialing' })]),
+      billing: createFixtureStripeReader([makeSub({ status: 'trialing' })]),
       database: createFixtureDatabaseReader([makeUser({ hasPaidAccess: false })]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -99,7 +99,7 @@ describe('evaluateAccess — revenue leak (active sub, no access)', () => {
 describe('evaluateAccess — wrongful access (lapsed sub, still has access)', () => {
   it('produces a high finding for canceled sub + has_paid_access=true', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ status: 'canceled' })]),
+      billing: createFixtureStripeReader([makeSub({ status: 'canceled' })]),
       database: createFixtureDatabaseReader([makeUser({ hasPaidAccess: true })]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -110,7 +110,7 @@ describe('evaluateAccess — wrongful access (lapsed sub, still has access)', ()
 
   it('triggers for unpaid subscriptions', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ status: 'unpaid' })]),
+      billing: createFixtureStripeReader([makeSub({ status: 'unpaid' })]),
       database: createFixtureDatabaseReader([makeUser({ hasPaidAccess: true })]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -119,7 +119,7 @@ describe('evaluateAccess — wrongful access (lapsed sub, still has access)', ()
 
   it('triggers for past_due subscriptions', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ status: 'past_due' })]),
+      billing: createFixtureStripeReader([makeSub({ status: 'past_due' })]),
       database: createFixtureDatabaseReader([makeUser({ hasPaidAccess: true })]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -130,7 +130,7 @@ describe('evaluateAccess — wrongful access (lapsed sub, still has access)', ()
 describe('evaluateAccess — plan drift', () => {
   it('flags unknown price ID (not in plans map)', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ priceIds: ['price_unknown'] })]),
+      billing: createFixtureStripeReader([makeSub({ priceIds: ['price_unknown'] })]),
       database: createFixtureDatabaseReader([makeUser()]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -142,7 +142,7 @@ describe('evaluateAccess — plan drift', () => {
 
   it('flags plan mismatch between app and Stripe price', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ priceIds: ['price_starter'] })]),
+      billing: createFixtureStripeReader([makeSub({ priceIds: ['price_starter'] })]),
       database: createFixtureDatabaseReader([makeUser({ plan: 'pro' })]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -155,7 +155,7 @@ describe('evaluateAccess — plan drift', () => {
 describe('evaluateAccess — duplicate customer', () => {
   it('flags when two users share a stripe_customer_id', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub()]),
+      billing: createFixtureStripeReader([makeSub()]),
       database: createFixtureDatabaseReader([
         makeUser({ id: 'u1' }),
         makeUser({ id: 'u2' }),
@@ -172,7 +172,7 @@ describe('evaluateAccess — duplicate customer', () => {
 describe('evaluateAccess — orphan references', () => {
   it('flags user with customer ID but no Stripe subscriptions found', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([]),
+      billing: createFixtureStripeReader([]),
       database: createFixtureDatabaseReader([makeUser()]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -182,7 +182,7 @@ describe('evaluateAccess — orphan references', () => {
 
   it('low-severity finding for Stripe customer with active sub but no app user', async () => {
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ customerId: 'cus_orphan' })]),
+      billing: createFixtureStripeReader([makeSub({ customerId: 'cus_orphan' })]),
       database: createFixtureDatabaseReader([]),
     };
     const findings = await evaluateAccess(baseCfg, sources);
@@ -196,11 +196,35 @@ describe('evaluateAccess — config without plans map', () => {
   it('skips plan checks when plans map is absent', async () => {
     const cfg: AccessContractConfig = { ...baseCfg, plans: undefined };
     const sources = {
-      stripe: createFixtureStripeReader([makeSub({ priceIds: ['price_anything'] })]),
+      billing: createFixtureStripeReader([makeSub({ priceIds: ['price_anything'] })]),
       database: createFixtureDatabaseReader([makeUser()]),
     };
     const findings = await evaluateAccess(cfg, sources);
     const planFindings = findings.filter((f) => f.entity.startsWith('price:'));
     expect(planFindings).toHaveLength(0);
+  });
+});
+
+describe('evaluateAccess — paddle source', () => {
+  const paddleCfg: AccessContractConfig = {
+    type: 'access',
+    source_of_truth: 'paddle',
+    database: baseCfg.database,
+    paddle: { api_key_env: 'PADDLE_API_KEY' },
+    plans: { pri_pro: 'pro' },
+    severity: 'high',
+  };
+
+  it('detects revenue leak with paddle fixtures', async () => {
+    const sources = {
+      billing: createFixtureStripeReader([
+        makeSub({ id: 'sub_1', customerId: 'ctm_1', priceIds: ['pri_pro'] }),
+      ]),
+      database: createFixtureDatabaseReader([
+        makeUser({ id: 'u1', stripeCustomerId: 'ctm_1', hasPaidAccess: false }),
+      ]),
+    };
+    const findings = await evaluateAccess(paddleCfg, sources);
+    expect(findings.some((f) => f.severity === 'high' && f.message.includes('Paddle'))).toBe(true);
   });
 });

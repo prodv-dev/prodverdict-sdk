@@ -6,12 +6,14 @@ import {
   evaluateAccess,
   evaluateConfig,
   aggregateVerdict,
-  createLiveStripeReader,
+  createLiveBillingReader,
   createLivePostgresReader,
   isProdVerdictError,
   type CheckResult,
 } from '@prodverdict/engine';
 import { buildComment, extractCommentMarker } from './comment.js';
+import { maybeNotifySlack } from './slack.js';
+import { uploadCheckResult } from './upload.js';
 
 /** Caller repo root — never the action/SDK checkout directory. */
 function workspaceRoot(): string {
@@ -61,9 +63,10 @@ async function run(): Promise<void> {
         return;
       }
 
-      core.info('Connecting to Stripe and database (read-only)…');
+      const provider = accessCfg.source_of_truth === 'paddle' ? 'Paddle' : 'Stripe';
+      core.info(`Connecting to ${provider} and database (read-only)…`);
       const sources = {
-        stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
+        billing: createLiveBillingReader(accessCfg),
         database: createLivePostgresReader(accessCfg),
       };
 
@@ -89,6 +92,22 @@ async function run(): Promise<void> {
     core.setOutput('result_json', JSON.stringify(result));
 
     await maybePostComment(result);
+
+    try {
+      await uploadCheckResult(result, 'action');
+      core.info('Uploaded check result to ProdVerdict dashboard.');
+    } catch (uploadErr) {
+      if (process.env.PRODVERDICT_API_URL) {
+        core.warning(
+          uploadErr instanceof Error ? uploadErr.message : `Upload failed: ${String(uploadErr)}`,
+        );
+      }
+    }
+
+    const slackWebhook = core.getInput('slack_webhook_url') || process.env['SLACK_WEBHOOK_URL'];
+    if (slackWebhook && (result.verdict === 'fail' || result.verdict === 'warn')) {
+      await maybeNotifySlack(result, slackWebhook);
+    }
 
     const label = result.contract === 'config' ? 'Config' : 'Access';
     if (result.verdict === 'fail') {

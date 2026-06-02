@@ -1,0 +1,21 @@
+version: 1
+contracts:
+  - type: access
+    source_of_truth: paddle
+    database:
+      url_env: DATABASE_URL
+      users_table: users
+      columns:
+        id: id
+        stripe_customer_id: paddle_customer_id
+        has_paid_access: has_paid_access
+        plan: plan
+    paddle:
+      api_key_env: PADDLE_API_KEY
+    plans:
+      pri_01NextStarter: starter
+      pri_01NextPro: pro
+    severity: high
+    fix: >
+      In your Paddle webhook handler, set has_paid_access=true and sync plan
+      from the subscription price. On subscription.canceled, revoke access.

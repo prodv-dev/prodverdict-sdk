@@ -1,8 +1,9 @@
 const LAPSED_STATUSES = new Set(['canceled', 'unpaid', 'past_due', 'incomplete_expired']);
 const ACTIVE_STATUSES = new Set(['active', 'trialing']);
 export async function evaluateAccess(cfg, sources) {
+    const provider = cfg.source_of_truth === 'paddle' ? 'Paddle' : 'Stripe';
     const [subscriptions, users] = await Promise.all([
-        sources.stripe.listSubscriptions(),
+        sources.billing.listSubscriptions(),
         sources.database.listUsers(),
     ]);
     const findings = [];
@@ -25,8 +26,8 @@ export async function evaluateAccess(cfg, sources) {
                 contract: 'access',
                 severity: 'medium',
                 entity: `customer:${customerId}`,
-                message: `stripe_customer_id "${customerId}" is linked to ${mapped.length} users (${ids}). Duplicate mapping.`,
-                fix: 'Ensure each Stripe customer maps to exactly one app user.',
+                message: `Billing customer id "${customerId}" is linked to ${mapped.length} users (${ids}). Duplicate mapping.`,
+                fix: `Ensure each ${provider} customer maps to exactly one app user.`,
             });
         }
     }
@@ -43,8 +44,8 @@ export async function evaluateAccess(cfg, sources) {
                 contract: 'access',
                 severity: 'medium',
                 entity: `user:${user.id}`,
-                message: `User has stripe_customer_id "${user.stripeCustomerId}" but no Stripe subscriptions were found.`,
-                fix: 'Verify the stripe_customer_id is correct or remove the stale reference.',
+                message: `User has billing customer id "${user.stripeCustomerId}" but no ${provider} subscriptions were found.`,
+                fix: 'Verify the customer id column is correct or remove the stale reference.',
             });
             continue;
         }
@@ -59,7 +60,7 @@ export async function evaluateAccess(cfg, sources) {
                     contract: 'access',
                     severity,
                     entity: `user:${user.id}`,
-                    message: `User has an active/trialing Stripe subscription (${activeSub.id}, status: ${activeSub.status}) ` +
+                    message: `User has an active/trialing ${provider} subscription (${activeSub.id}, status: ${activeSub.status}) ` +
                         `but has_paid_access is false. Revenue leak — user cannot access paid features.`,
                     fix: defaultFix ?? 'Set has_paid_access=true and assign the correct plan on subscription activation.',
                 });
@@ -74,7 +75,7 @@ export async function evaluateAccess(cfg, sources) {
                             severity,
                             entity: `price:${priceId}`,
                             message: `Subscription ${activeSub.id} uses price "${priceId}" which is not in the plans map.`,
-                            fix: `Add "${priceId}" to the plans map in prodverdict.yml, or remove it from Stripe if deprecated.`,
+                            fix: `Add "${priceId}" to the plans map in prodverdict.yml, or remove it from ${provider} if deprecated.`,
                         });
                     }
                     else if (user.plan !== null && user.plan !== expectedPlan) {
@@ -82,8 +83,8 @@ export async function evaluateAccess(cfg, sources) {
                             contract: 'access',
                             severity,
                             entity: `user:${user.id}`,
-                            message: `User plan is "${user.plan}" but active Stripe price "${priceId}" maps to plan "${expectedPlan}".`,
-                            fix: defaultFix ?? `Update the user's plan to "${expectedPlan}" to match the Stripe price.`,
+                            message: `User plan is "${user.plan}" but active ${provider} price "${priceId}" maps to plan "${expectedPlan}".`,
+                            fix: defaultFix ?? `Update the user's plan to "${expectedPlan}" to match the billing price.`,
                         });
                     }
                 }
@@ -96,7 +97,7 @@ export async function evaluateAccess(cfg, sources) {
                     contract: 'access',
                     severity,
                     entity: `user:${user.id}`,
-                    message: `User has a ${anySub.status} Stripe subscription (${anySub.id}) ` +
+                    message: `User has a ${anySub.status} ${provider} subscription (${anySub.id}) ` +
                         `but has_paid_access is still true. Wrongful access — user is accessing paid features without a valid subscription.`,
                     fix: defaultFix ?? 'Set has_paid_access=false and revoke plan access in the cancellation/webhook handler.',
                 });
@@ -112,8 +113,8 @@ export async function evaluateAccess(cfg, sources) {
                     contract: 'access',
                     severity: 'low',
                     entity: `customer:${customerId}`,
-                    message: `Stripe customer "${customerId}" has an active subscription (${activeSub.id}) but no matching app user row.`,
-                    fix: 'Verify the customer was not deleted from the app, or handle the Stripe subscription cleanup.',
+                    message: `${provider} customer "${customerId}" has an active subscription (${activeSub.id}) but no matching app user row.`,
+                    fix: 'Verify the customer was not deleted from the app, or handle subscription cleanup in billing.',
                 });
             }
         }

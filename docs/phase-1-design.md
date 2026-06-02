@@ -173,6 +173,29 @@ Create a restricted key at https://dashboard.stripe.com/apikeys:
 
 No write permissions should be granted.
 
+## Paddle (optional `source_of_truth`)
+
+Use Paddle Billing instead of Stripe when subscriptions are managed in Paddle:
+
+```yaml
+contracts:
+  - type: access
+    source_of_truth: paddle
+    paddle:
+      api_key_env: PADDLE_API_KEY
+    database:
+      url_env: DATABASE_URL
+      columns:
+        stripe_customer_id: paddle_customer_id
+    plans:
+      pri_01ABCxxx: pro
+```
+
+- API key: **subscription.read** only (Paddle dashboard → Developer tools → Authentication).
+- Set `PADDLE_ENVIRONMENT=production` or `sandbox` in CI when using live checks.
+- Fixture layout: `fixtures-dir/paddle/subscriptions.json` (same JSON shape as Stripe fixtures).
+- Example: `core/examples/paddle-stripe/`.
+
 ## Required Database Setup
 
 ```sql

@@ -11,6 +11,8 @@ export interface RunCheckOptions {
     strict?: boolean | undefined;
     /** Repo root for config contract source scanning (default: cwd) */
     repoRoot?: string | undefined;
+    /** POST result to PRODVERDICT_API_URL when env vars set */
+    upload?: boolean | undefined;
 }
 export declare function runCheck(opts: RunCheckOptions): Promise<{
     result: CheckResult;

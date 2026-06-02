@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { resolve } from 'path';
-import { parseConfigFile, evaluateAccess, aggregateVerdict, createLiveStripeReader, createLivePostgresReader, isProdVerdictError, } from '@prodverdict/engine';
+import { parseConfigFile, evaluateAccess, aggregateVerdict, createLiveBillingReader, createLivePostgresReader, isProdVerdictError, } from '@prodverdict/engine';
 const DEFAULT_CONFIG = './prodverdict.yml';
 const server = new McpServer({
     name: 'prodverdict',
@@ -36,7 +36,7 @@ server.tool('check_access_contract', 'Run the ProdVerdict access contract check.
             };
         }
         const sources = {
-            stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
+            billing: createLiveBillingReader(accessCfg),
             database: createLivePostgresReader(accessCfg),
         };
         let findings;

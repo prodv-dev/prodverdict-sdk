@@ -1,0 +1,8 @@
+[
+  {
+    "id": "usr_alice",
+    "stripe_customer_id": "ctm_alice",
+    "has_paid_access": true,
+    "plan": "pro"
+  }
+]

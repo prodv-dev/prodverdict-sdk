@@ -60,4 +60,19 @@ describe('validateConfig', () => {
     delete raw.contracts[0].database.url_env;
     expect(() => validateConfig(raw)).toThrow('prodverdict.yml is invalid');
   });
+
+  it('accepts paddle source_of_truth', () => {
+    const cfg = validateConfig({
+      version: 1,
+      contracts: [
+        {
+          type: 'access',
+          source_of_truth: 'paddle',
+          database: { url_env: 'DATABASE_URL' },
+          paddle: { api_key_env: 'PADDLE_API_KEY' },
+        },
+      ],
+    });
+    expect(cfg.contracts[0]?.source_of_truth).toBe('paddle');
+  });
 });

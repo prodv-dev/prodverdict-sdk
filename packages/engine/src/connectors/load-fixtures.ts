@@ -37,9 +37,12 @@ export function loadFixtureUsers(filePath: string): AppUser[] {
   }));
 }
 
-export function defaultFixturePaths(fixturesDir: string): FixturePaths {
+export function defaultFixturePaths(
+  fixturesDir: string,
+  billing: 'stripe' | 'paddle' = 'stripe',
+): FixturePaths {
   return {
-    stripeSubscriptions: join(fixturesDir, 'stripe', 'subscriptions.json'),
+    stripeSubscriptions: join(fixturesDir, billing, 'subscriptions.json'),
     dbUsers: join(fixturesDir, 'db', 'users.json'),
   };
 }

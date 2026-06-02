@@ -1,8 +1,10 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { resolve } from 'path';
-import { parseConfigFile, evaluateAccess, evaluateConfig, aggregateVerdict, createLiveStripeReader, createLivePostgresReader, isProdVerdictError, } from '@prodverdict/engine';
+import { parseConfigFile, evaluateAccess, evaluateConfig, aggregateVerdict, createLiveBillingReader, createLivePostgresReader, isProdVerdictError, } from '@prodverdict/engine';
 import { buildComment, extractCommentMarker } from './comment.js';
+import { maybeNotifySlack } from './slack.js';
+import { uploadCheckResult } from './upload.js';
 /** Caller repo root — never the action/SDK checkout directory. */
 function workspaceRoot() {
     return process.env['GITHUB_WORKSPACE'] ?? process.cwd();
@@ -45,9 +47,10 @@ async function run() {
                 core.setFailed('No access contract found in prodverdict.yml.');
                 return;
             }
-            core.info('Connecting to Stripe and database (read-only)…');
+            const provider = accessCfg.source_of_truth === 'paddle' ? 'Paddle' : 'Stripe';
+            core.info(`Connecting to ${provider} and database (read-only)…`);
             const sources = {
-                stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
+                billing: createLiveBillingReader(accessCfg),
                 database: createLivePostgresReader(accessCfg),
             };
             let findings;
@@ -70,6 +73,19 @@ async function run() {
         core.setOutput('findings_count', String(result.findings.length));
         core.setOutput('result_json', JSON.stringify(result));
         await maybePostComment(result);
+        try {
+            await uploadCheckResult(result, 'action');
+            core.info('Uploaded check result to ProdVerdict dashboard.');
+        }
+        catch (uploadErr) {
+            if (process.env.PRODVERDICT_API_URL) {
+                core.warning(uploadErr instanceof Error ? uploadErr.message : `Upload failed: ${String(uploadErr)}`);
+            }
+        }
+        const slackWebhook = core.getInput('slack_webhook_url') || process.env['SLACK_WEBHOOK_URL'];
+        if (slackWebhook && (result.verdict === 'fail' || result.verdict === 'warn')) {
+            await maybeNotifySlack(result, slackWebhook);
+        }
         const label = result.contract === 'config' ? 'Config' : 'Access';
         if (result.verdict === 'fail') {
             core.setFailed(`${label} contract FAILED — ${result.findings.filter((f) => f.severity === 'high').length} high-severity finding(s). ` +

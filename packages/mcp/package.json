@@ -1,6 +1,6 @@
 {
   "name": "@prodverdict/mcp",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "MCP server for ProdVerdict — AI agent integration for production contract checks",
   "license": "MIT",
   "type": "module",
@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@prodverdict/engine": "0.1.0",
+    "@prodverdict/engine": "0.3.0",
     "zod": "^3.23.8"
   }
 }

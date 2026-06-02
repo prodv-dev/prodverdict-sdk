@@ -1,0 +1,30 @@
+# Example: nightly access contract check + Slack alert + dashboard upload
+# Copy to .github/workflows/prodverdict-scheduled.yml in your app repo
+
+name: ProdVerdict scheduled
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  access-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prodv-dev/prodverdict-action@v0.3.0
+        with:
+          config: ./prodverdict.yml
+          contract: access
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PRODVERDICT_API_URL: https://prodverdict.com
+          PRODVERDICT_API_KEY: ${{ secrets.PRODVERDICT_API_KEY }}
+          PRODVERDICT_PROJECT_ID: ${{ secrets.PRODVERDICT_PROJECT_ID }}
+          # For Paddle billing:
+          # PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+          # PADDLE_ENVIRONMENT: production

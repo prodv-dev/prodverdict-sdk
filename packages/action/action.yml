@@ -1,8 +1,5 @@
 name: ProdVerdict
-description: >
-  Deterministic production contract checks for AI-assisted SaaS. Verifies Stripe
-  subscription state matches app access controls (access contract) and environment
-  variables are correctly declared (config contract). Posts findings as PR comments.
+description: Deterministic Stripe vs database access checks for AI-assisted SaaS. Catch revenue leaks in CI.
 author: prodv-dev
 branding:
   icon: shield
@@ -21,6 +18,10 @@ inputs:
     description: Fail the check when only medium/low severity findings exist (warn verdict)
     required: false
     default: 'false'
+  slack_webhook_url:
+    description: Optional Slack incoming webhook URL — notifies on fail/warn (or set SLACK_WEBHOOK_URL env)
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -43,6 +44,10 @@ runs:
         INPUT_CONFIG: ${{ inputs.config }}
         INPUT_CONTRACT: ${{ inputs.contract }}
         INPUT_STRICT: ${{ inputs.strict }}
+        INPUT_SLACK_WEBHOOK_URL: ${{ inputs.slack_webhook_url }}
         STRIPE_SECRET_KEY: ${{ env.STRIPE_SECRET_KEY }}
+        PADDLE_API_KEY: ${{ env.PADDLE_API_KEY }}
+        PADDLE_ENVIRONMENT: ${{ env.PADDLE_ENVIRONMENT }}
         DATABASE_URL: ${{ env.DATABASE_URL }}
         GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+        SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK_URL }}

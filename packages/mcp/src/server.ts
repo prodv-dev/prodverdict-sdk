@@ -6,7 +6,7 @@ import {
   parseConfigFile,
   evaluateAccess,
   aggregateVerdict,
-  createLiveStripeReader,
+  createLiveBillingReader,
   createLivePostgresReader,
   isProdVerdictError,
   type CheckResult,
@@ -53,7 +53,7 @@ server.tool(
       }
 
       const sources = {
-        stripe: createLiveStripeReader(accessCfg.stripe.secret_env),
+        billing: createLiveBillingReader(accessCfg),
         database: createLivePostgresReader(accessCfg),
       };
 

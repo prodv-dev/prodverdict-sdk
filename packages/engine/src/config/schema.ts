@@ -19,18 +19,30 @@ const AccessStripeSchema = z.object({
   secret_env: z.string().min(1).describe('Name of the env var holding STRIPE_SECRET_KEY'),
 });
 
-const AccessContractSchema = z.object({
+const AccessPaddleSchema = z.object({
+  api_key_env: z.string().min(1).describe('Name of the env var holding PADDLE_API_KEY'),
+});
+
+const AccessContractBaseSchema = z.object({
   type: z.literal('access'),
-  source_of_truth: z.literal('stripe').default('stripe'),
   database: AccessDatabaseSchema,
-  stripe: AccessStripeSchema,
-  /** Map of Stripe price ID -> plan slug used in the app */
+  /** Map of billing price ID -> plan slug used in the app */
   plans: z.record(z.string(), z.string()).optional(),
-  /** Default severity applied to findings if not overridden per-rule */
   severity: SeveritySchema.default('high'),
-  /** Default human/agent-readable fix hint */
   fix: z.string().optional(),
 });
+
+const AccessContractStripeSchema = AccessContractBaseSchema.extend({
+  source_of_truth: z.literal('stripe').default('stripe'),
+  stripe: AccessStripeSchema,
+});
+
+const AccessContractPaddleSchema = AccessContractBaseSchema.extend({
+  source_of_truth: z.literal('paddle'),
+  paddle: AccessPaddleSchema,
+});
+
+export const AccessContractSchema = z.union([AccessContractStripeSchema, AccessContractPaddleSchema]);
 
 export type AccessContractConfig = z.infer<typeof AccessContractSchema>;
 
@@ -55,17 +67,11 @@ export type ConfigRule = z.infer<typeof ConfigRuleSchema>;
 
 const ConfigContractSchema = z.object({
   type: z.literal('config'),
-  /** Default severity for findings */
   severity: SeveritySchema.default('high'),
-  /** Explicit rules about individual env vars */
   rules: z.array(ConfigRuleSchema).default([]),
-  /** Scan source code for process.env.* references and check against .env.example */
   scan_references: z.boolean().default(true),
-  /** Path to the env example file (relative to repo root) */
   env_example_file: z.string().default('.env.example'),
-  /** Warn if a required var's value looks like a placeholder */
   check_placeholders: z.boolean().default(true),
-  /** Variable names to ignore during reference scan */
   ignore_vars: z.array(z.string()).default([]),
 });
 
@@ -73,7 +79,7 @@ export type ConfigContractConfig = z.infer<typeof ConfigContractSchema>;
 
 // ── Union ──────────────────────────────────────────────────────────────────────
 
-const ContractSchema = z.discriminatedUnion('type', [AccessContractSchema, ConfigContractSchema]);
+const ContractSchema = z.union([AccessContractStripeSchema, AccessContractPaddleSchema, ConfigContractSchema]);
 
 export const ProdVerdictConfigSchema = z.object({
   version: z.literal(1),

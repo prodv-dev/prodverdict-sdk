@@ -3,11 +3,12 @@ import { parseConfigFile, isProdVerdictError } from '@prodverdict/engine';
 import { resolve } from 'path';
 import { runCheck } from './run-check.js';
 import { formatTextResult } from './format/text.js';
+import { writeInitConfig } from './init-config.js';
 const program = new Command();
 program
     .name('prodverdict')
     .description('Deterministic production contract verification for AI-assisted SaaS')
-    .version('0.0.1');
+    .version('0.3.0');
 program
     .command('check [contract]')
     .description('Run contract checks: access (default) or config. Use --format json for machine-readable output.')
@@ -18,6 +19,7 @@ program
     .option('--fixtures-stripe [dir]', 'Use live Postgres + Stripe fixture JSON from dir (default: scenarios/pass next to config)')
     .option('--strict', 'Exit with code 1 on warn verdict (medium/low findings only)')
     .option('--repo-root <path>', 'Repo root for source scanning (config contract; default: cwd)')
+    .option('--upload', 'Upload JSON result to PRODVERDICT_API_URL (requires API key env vars)')
     .action(async (contract, options) => {
     try {
         const format = options.format === 'json' ? 'json' : 'text';
@@ -36,6 +38,7 @@ program
             fixturesStripeDir,
             strict: options.strict,
             repoRoot: options.repoRoot,
+            upload: options.upload,
         });
         if (format === 'json') {
             process.stdout.write(JSON.stringify(result, null, 2) + '\n');
@@ -44,6 +47,28 @@ program
             process.stdout.write(formatTextResult(result) + '\n');
         }
         process.exit(exitCode);
+    }
+    catch (err) {
+        handleError(err);
+    }
+});
+program
+    .command('init')
+    .description('Create prodverdict.yml from a stack template.')
+    .option('-s, --stack <stack>', 'Template: nextjs-stripe, supabase-stripe, paddle-stripe, rails-stripe', 'nextjs-stripe')
+    .option('-o, --output <path>', 'Output file', 'prodverdict.yml')
+    .action((options) => {
+    const stacks = ['nextjs-stripe', 'supabase-stripe', 'paddle-stripe', 'rails-stripe'];
+    const stack = options.stack;
+    if (!stacks.includes(stack)) {
+        handleError(Object.assign(new Error(`Unknown stack "${options.stack}". Use: ${stacks.join(', ')}`), {
+            code: 'CONFIG_INVALID',
+        }));
+    }
+    try {
+        const path = writeInitConfig(process.cwd(), stack, options.output);
+        process.stdout.write(`✔ Wrote ${path}\n`);
+        process.exit(0);
     }
     catch (err) {
         handleError(err);

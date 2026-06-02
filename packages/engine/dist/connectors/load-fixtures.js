@@ -18,9 +18,9 @@ export function loadFixtureUsers(filePath) {
         plan: row.plan,
     }));
 }
-export function defaultFixturePaths(fixturesDir) {
+export function defaultFixturePaths(fixturesDir, billing = 'stripe') {
     return {
-        stripeSubscriptions: join(fixturesDir, 'stripe', 'subscriptions.json'),
+        stripeSubscriptions: join(fixturesDir, billing, 'subscriptions.json'),
         dbUsers: join(fixturesDir, 'db', 'users.json'),
     };
 }

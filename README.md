@@ -7,6 +7,7 @@ ProdVerdict compares Stripe subscription state to your database access flags, sc
 **Website:** [prodverdict.com](https://prodverdict.com)
 
 [![npm](https://img.shields.io/npm/v/prodverdict.svg)](https://www.npmjs.com/package/prodverdict)
+[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-ProdVerdict-007ec6.svg)](https://github.com/marketplace/actions/prodverdict)
 [![CI](https://github.com/prodv-dev/prodverdict-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/prodv-dev/prodverdict-sdk/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -73,10 +74,12 @@ npx prodverdict validate --config prodverdict.yml
 
 ## GitHub Action
 
+**Marketplace repo** (recommended — `action.yml` at repo root):
+
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-sdk/packages/action@v0.1.0
+- uses: prodv-dev/prodverdict-action@v0.3.0
   with:
     config: ./prodverdict.yml
     contract: access
@@ -86,6 +89,8 @@ npx prodverdict validate --config prodverdict.yml
     DATABASE_URL: ${{ secrets.DATABASE_URL }}
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.3.0`
 
 The action runs against **your repository** (not the SDK checkout), posts findings as a PR comment, and fails on high-severity access violations.
 
@@ -124,6 +129,7 @@ Copy the example closest to your stack, then adjust `prodverdict.yml` and `plans
 |---------|-------|----------------|
 | [nextjs-stripe](examples/nextjs-stripe/) | Next.js + Stripe | `users` |
 | [supabase-stripe](examples/supabase-stripe/) | Supabase + Stripe | `profiles` |
+| [paddle-stripe](examples/paddle-stripe/) | Paddle Billing + Postgres | `users` (`paddle_customer_id`) |
 | [rails-stripe](examples/rails-stripe/) | Rails + Stripe | `users` |
 
 Each includes fixture scenarios (`pass` / `fail-revenue-leak`) runnable without credentials: `node examples/<name>/run-demo.mjs`.
@@ -141,6 +147,33 @@ Each includes fixture scenarios (`pass` / `fail-revenue-leak`) runnable without 
 | `examples/rails-stripe` | Rails + Stripe (`users` table) |
 | `test-env/` | Docker Postgres + pass/fail scenario seeds |
 | `fixtures/` | Minimal fixture data for unit-style runs |
+
+## v0.2 — dashboard upload & init
+
+```bash
+# Scaffold config for your stack
+npx prodverdict init --stack nextjs-stripe
+
+# Upload result to prodverdict.com (after creating a project + API key)
+export PRODVERDICT_API_URL=https://prodverdict.com
+export PRODVERDICT_API_KEY=pv_...
+export PRODVERDICT_PROJECT_ID=...
+npx prodverdict check access --fixtures --upload
+```
+
+## v0.3 — ops in CI + run history
+
+Checks still run **only in your CI** (Stripe/DB secrets never leave your runner). v0.3 adds scheduled workflows, Slack on fail/warn, and dashboard upload from CLI or Action.
+
+**Nightly + Slack + upload** — copy [examples/workflows/prodverdict-scheduled.yml](examples/workflows/prodverdict-scheduled.yml):
+
+- `prodv-dev/prodverdict-action@v0.3.0`
+- `slack_webhook_url` → `secrets.SLACK_WEBHOOK_URL`
+- `PRODVERDICT_API_URL`, `PRODVERDICT_API_KEY`, `PRODVERDICT_PROJECT_ID` — uploads on pass **and** fail
+
+PR workflow: same Action version; add `PRODVERDICT_*` env to upload runs to [prodverdict.com](https://prodverdict.com/dashboard).
+
+Supabase setup for the dashboard: see private site docs `SUPABASE_SETUP.md` (not in public SDK).
 
 ## Development
 

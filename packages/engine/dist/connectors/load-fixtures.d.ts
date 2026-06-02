@@ -5,5 +5,5 @@ export interface FixturePaths {
 }
 export declare function loadFixtureSubscriptions(filePath: string): StripeSubscription[];
 export declare function loadFixtureUsers(filePath: string): AppUser[];
-export declare function defaultFixturePaths(fixturesDir: string): FixturePaths;
+export declare function defaultFixturePaths(fixturesDir: string, billing?: 'stripe' | 'paddle'): FixturePaths;
 //# sourceMappingURL=load-fixtures.d.ts.map

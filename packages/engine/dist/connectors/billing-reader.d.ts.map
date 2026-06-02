@@ -1,0 +1,1 @@
+{"version":3,"file":"billing-reader.d.ts","sourceRoot":"","sources":["../../src/connectors/billing-reader.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,oBAAoB,EAAE,MAAM,qBAAqB,CAAC;AAChE,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,YAAY,CAAC;AAI/C,wBAAgB,uBAAuB,CAAC,GAAG,EAAE,oBAAoB,GAAG,YAAY,CAK/E"}
