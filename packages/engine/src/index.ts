@@ -9,4 +9,6 @@ export { evaluateAccess } from './evaluators/access.js';
 export type { AccessDataSources } from './evaluators/access.js';
 export { evaluateConfig, scanEnvReferences, parseEnvFile } from './evaluators/config.js';
 export type { ConfigDataSources } from './evaluators/config.js';
+export { evaluateMigration } from './evaluators/migration.js';
+export type { MigrationDataSources } from './evaluators/migration.js';
 export { aggregateVerdict } from './verdict.js';

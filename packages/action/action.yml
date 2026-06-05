@@ -11,7 +11,7 @@ inputs:
     required: false
     default: ./prodverdict.yml
   contract:
-    description: Contract to run — "access" (Stripe vs DB) or "config" (env vars)
+    description: Contract to run — access, config, or migration
     required: false
     default: access
   strict:

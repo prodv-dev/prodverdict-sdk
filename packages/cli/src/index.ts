@@ -10,11 +10,11 @@ const program = new Command();
 program
   .name('prodverdict')
   .description('Deterministic production contract verification for AI-assisted SaaS')
-  .version('0.3.0');
+  .version('0.5.0');
 
 program
   .command('check [contract]')
-  .description('Run contract checks: access (default) or config. Use --format json for machine-readable output.')
+  .description('Run contract checks: access (default), config, migration, or all. Use --format json for machine-readable output.')
   .option('-c, --config <path>', 'Path to prodverdict.yml', './prodverdict.yml')
   .option('-f, --format <format>', 'Output format: text or json', 'text')
   .option('--fixtures', 'Use fixture JSON from fixtures/ instead of live credentials')
@@ -62,7 +62,8 @@ program
   .description('Create prodverdict.yml from a stack template.')
   .option('-s, --stack <stack>', 'Template: nextjs-stripe, supabase-stripe, paddle-stripe, rails-stripe', 'nextjs-stripe')
   .option('-o, --output <path>', 'Output file', 'prodverdict.yml')
-  .action((options: { stack: string; output: string }) => {
+  .option('--access-only', 'Omit config contract block (access contract only)')
+  .action((options: { stack: string; output: string; accessOnly?: boolean }) => {
     const stacks: InitStack[] = ['nextjs-stripe', 'supabase-stripe', 'paddle-stripe', 'rails-stripe'];
     const stack = options.stack as InitStack;
     if (!stacks.includes(stack)) {
@@ -73,7 +74,9 @@ program
       );
     }
     try {
-      const path = writeInitConfig(process.cwd(), stack, options.output);
+      const path = writeInitConfig(process.cwd(), stack, options.output, {
+        includeConfig: !options.accessOnly,
+      });
       process.stdout.write(`✔ Wrote ${path}\n`);
       process.exit(0);
     } catch (err) {

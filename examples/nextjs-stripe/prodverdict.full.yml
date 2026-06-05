@@ -1,0 +1,34 @@
+version: 1
+contracts:
+  - type: access
+    source_of_truth: stripe
+    database:
+      url_env: DATABASE_URL
+      users_table: users
+      columns:
+        id: id
+        stripe_customer_id: stripe_customer_id
+        has_paid_access: has_paid_access
+        plan: plan
+    stripe:
+      secret_env: STRIPE_SECRET_KEY
+    plans:
+      price_1NextStarter: starter
+      price_1NextPro: pro
+    severity: high
+    fix: >
+      In your Stripe webhook handler (customer.subscription.created/updated),
+      set has_paid_access=true and sync plan from the subscription price.
+      On customer.subscription.deleted, set has_paid_access=false.
+  - type: config
+    severity: medium
+    scan_references: true
+    env_example_file: .env.example
+    check_placeholders: true
+    rules:
+      - type: required
+        name: DATABASE_URL
+        description: Postgres connection for access checks
+      - type: required
+        name: STRIPE_SECRET_KEY
+        description: Restricted Stripe key for read-only subscription reads

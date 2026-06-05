@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { resolve } from 'path';
-import { parseConfigFile, evaluateAccess, evaluateConfig, aggregateVerdict, createLiveBillingReader, createLivePostgresReader, isProdVerdictError, } from '@prodverdict/engine';
+import { parseConfigFile, evaluateAccess, evaluateConfig, evaluateMigration, aggregateVerdict, createLiveBillingReader, createLivePostgresReader, isProdVerdictError, } from '@prodverdict/engine';
 import { buildComment, extractCommentMarker } from './comment.js';
 import { maybeNotifySlack } from './slack.js';
 import { uploadCheckResult } from './upload.js';
@@ -15,14 +15,32 @@ async function run() {
         const configPath = resolve(workspaceRoot(), configInput);
         const contractInput = (core.getInput('contract') || 'access').toLowerCase();
         const strict = (core.getInput('strict') || 'false').toLowerCase() === 'true';
-        if (contractInput !== 'access' && contractInput !== 'config') {
-            core.setFailed(`Unknown contract "${contractInput}". Supported: access, config.`);
+        if (!['access', 'config', 'migration'].includes(contractInput)) {
+            core.setFailed(`Unknown contract "${contractInput}". Supported: access, config, migration.`);
             return;
         }
         core.info(`Loading config from ${configPath}`);
         const cfg = parseConfigFile(configPath);
         let result;
-        if (contractInput === 'config') {
+        if (contractInput === 'migration') {
+            const migrationCfg = cfg.contracts.find((c) => c.type === 'migration');
+            if (!migrationCfg) {
+                core.setFailed('No migration contract found in prodverdict.yml.');
+                return;
+            }
+            core.info('Running migration contract check…');
+            const findings = await evaluateMigration(migrationCfg, {
+                repoRoot: workspaceRoot(),
+            });
+            const verdict = aggregateVerdict(findings);
+            result = {
+                contract: 'migration',
+                verdict,
+                findings,
+                evaluatedAt: new Date().toISOString(),
+            };
+        }
+        else if (contractInput === 'config') {
             const configCfg = cfg.contracts.find((c) => c.type === 'config');
             if (!configCfg) {
                 core.setFailed('No config contract found in prodverdict.yml.');
@@ -86,7 +104,7 @@ async function run() {
         if (slackWebhook && (result.verdict === 'fail' || result.verdict === 'warn')) {
             await maybeNotifySlack(result, slackWebhook);
         }
-        const label = result.contract === 'config' ? 'Config' : 'Access';
+        const label = result.contract === 'config' ? 'Config' : result.contract === 'migration' ? 'Migration' : 'Access';
         if (result.verdict === 'fail') {
             core.setFailed(`${label} contract FAILED — ${result.findings.filter((f) => f.severity === 'high').length} high-severity finding(s). ` +
                 'See comment for details.');

@@ -9,18 +9,14 @@ const VERDICT_COLOR = {
     warn: chalk.yellow,
     pass: chalk.green,
 };
-export function formatTextResult(result) {
+function formatFindings(findings) {
     const lines = [];
-    const verdictLabelFn = VERDICT_COLOR[result.verdict];
-    const verdictLabel = verdictLabelFn(`[${result.verdict.toUpperCase()}]`);
-    lines.push(`\nProdVerdict · Access Contract · ${verdictLabel}`);
-    lines.push(`Evaluated at: ${result.evaluatedAt}\n`);
-    if (result.findings.length === 0) {
-        lines.push(chalk.green('✔ No violations found. All access state is in sync.'));
-        return lines.join('\n');
+    if (findings.length === 0) {
+        lines.push(chalk.green('✔ No violations found.'));
+        return lines;
     }
-    lines.push(`${result.findings.length} finding(s):\n`);
-    for (const f of result.findings) {
+    lines.push(`${findings.length} finding(s):\n`);
+    for (const f of findings) {
         const color = SEVERITY_COLOR[f.severity] ?? chalk.white;
         const badge = color(`[${f.severity.toUpperCase()}]`);
         lines.push(`  ${badge} ${chalk.bold(f.entity)}`);
@@ -30,6 +26,26 @@ export function formatTextResult(result) {
         }
         lines.push('');
     }
+    return lines;
+}
+export function formatTextResult(result) {
+    const lines = [];
+    if ('results' in result) {
+        const verdictLabelFn = VERDICT_COLOR[result.verdict];
+        lines.push(`\nProdVerdict · All contracts · ${verdictLabelFn(`[${result.verdict.toUpperCase()}]`)}`);
+        lines.push(`Evaluated at: ${result.evaluatedAt}\n`);
+        for (const r of result.results) {
+            lines.push(chalk.bold(`${r.contract}: ${r.verdict.toUpperCase()} (${r.findings.length} findings)`));
+        }
+        lines.push('');
+        lines.push(...formatFindings(result.findings));
+        return lines.join('\n');
+    }
+    const verdictLabelFn = VERDICT_COLOR[result.verdict];
+    const verdictLabel = verdictLabelFn(`[${result.verdict.toUpperCase()}]`);
+    lines.push(`\nProdVerdict · ${result.contract} contract · ${verdictLabel}`);
+    lines.push(`Evaluated at: ${result.evaluatedAt}\n`);
+    lines.push(...formatFindings(result.findings));
     return lines.join('\n');
 }
 //# sourceMappingURL=text.js.map

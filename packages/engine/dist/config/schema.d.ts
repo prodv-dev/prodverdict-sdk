@@ -291,6 +291,23 @@ declare const ConfigContractSchema: z.ZodObject<{
     ignore_vars?: string[] | undefined;
 }>;
 export type ConfigContractConfig = z.infer<typeof ConfigContractSchema>;
+declare const MigrationContractSchema: z.ZodObject<{
+    type: z.ZodLiteral<"migration">;
+    paths: z.ZodArray<z.ZodString, "many">;
+    severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+    fix: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    type: "migration";
+    severity: "high" | "medium" | "low";
+    paths: string[];
+    fix?: string | undefined;
+}, {
+    type: "migration";
+    paths: string[];
+    severity?: "high" | "medium" | "low" | undefined;
+    fix?: string | undefined;
+}>;
+export type MigrationContractConfig = z.infer<typeof MigrationContractSchema>;
 export declare const ProdVerdictConfigSchema: z.ZodObject<{
     version: z.ZodLiteral<1>;
     contracts: z.ZodArray<z.ZodUnion<[z.ZodObject<{
@@ -549,6 +566,21 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         env_example_file?: string | undefined;
         check_placeholders?: boolean | undefined;
         ignore_vars?: string[] | undefined;
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"migration">;
+        paths: z.ZodArray<z.ZodString, "many">;
+        severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+        fix: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        type: "migration";
+        severity: "high" | "medium" | "low";
+        paths: string[];
+        fix?: string | undefined;
+    }, {
+        type: "migration";
+        paths: string[];
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
     }>]>, "many">;
 }, "strip", z.ZodTypeAny, {
     version: 1;
@@ -608,6 +640,11 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         env_example_file: string;
         check_placeholders: boolean;
         ignore_vars: string[];
+    } | {
+        type: "migration";
+        severity: "high" | "medium" | "low";
+        paths: string[];
+        fix?: string | undefined;
     })[];
 }, {
     version: 1;
@@ -667,6 +704,11 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         env_example_file?: string | undefined;
         check_placeholders?: boolean | undefined;
         ignore_vars?: string[] | undefined;
+    } | {
+        type: "migration";
+        paths: string[];
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
     })[];
 }>;
 export type ProdVerdictConfig = z.infer<typeof ProdVerdictConfigSchema>;

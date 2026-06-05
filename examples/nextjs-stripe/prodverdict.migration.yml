@@ -1,0 +1,7 @@
+version: 1
+contracts:
+  - type: migration
+    paths:
+      - migrations/**/*.sql
+    severity: high
+    fix: Use CREATE INDEX CONCURRENTLY and multi-step NOT NULL backfills.

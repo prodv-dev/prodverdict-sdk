@@ -1,4 +1,4 @@
-import { type CheckResult } from '@prodverdict/engine';
+import { type CheckResult, type Finding, type Verdict } from '@prodverdict/engine';
 export interface RunCheckOptions {
     config: string;
     contract?: string | undefined;
@@ -14,8 +14,14 @@ export interface RunCheckOptions {
     /** POST result to PRODVERDICT_API_URL when env vars set */
     upload?: boolean | undefined;
 }
+export interface AggregateCheckOutput {
+    verdict: Verdict;
+    findings: Finding[];
+    evaluatedAt: string;
+    results: CheckResult[];
+}
 export declare function runCheck(opts: RunCheckOptions): Promise<{
-    result: CheckResult;
+    result: CheckResult | AggregateCheckOutput;
     exitCode: number;
 }>;
 //# sourceMappingURL=run-check.d.ts.map

@@ -1,0 +1,26 @@
+# Run config contract on pull requests (env drift / missing secrets).
+# Copy to .github/workflows/prodverdict-config.yml in your app repo.
+name: ProdVerdict Config
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prodv-dev/prodverdict-action@v0.4.0
+        with:
+          config: ./prodverdict.yml
+          contract: config
+          strict: false
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRODVERDICT_API_URL: https://prodverdict.com
+          PRODVERDICT_API_KEY: ${{ secrets.PRODVERDICT_API_KEY }}
+          PRODVERDICT_PROJECT_ID: ${{ secrets.PRODVERDICT_PROJECT_ID }}

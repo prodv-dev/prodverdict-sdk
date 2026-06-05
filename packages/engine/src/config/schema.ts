@@ -77,9 +77,25 @@ const ConfigContractSchema = z.object({
 
 export type ConfigContractConfig = z.infer<typeof ConfigContractSchema>;
 
+// ── Migration Contract ─────────────────────────────────────────────────────────
+
+const MigrationContractSchema = z.object({
+  type: z.literal('migration'),
+  paths: z.array(z.string().min(1)).min(1),
+  severity: SeveritySchema.default('high'),
+  fix: z.string().optional(),
+});
+
+export type MigrationContractConfig = z.infer<typeof MigrationContractSchema>;
+
 // ── Union ──────────────────────────────────────────────────────────────────────
 
-const ContractSchema = z.union([AccessContractStripeSchema, AccessContractPaddleSchema, ConfigContractSchema]);
+const ContractSchema = z.union([
+  AccessContractStripeSchema,
+  AccessContractPaddleSchema,
+  ConfigContractSchema,
+  MigrationContractSchema,
+]);
 
 export const ProdVerdictConfigSchema = z.object({
   version: z.literal(1),

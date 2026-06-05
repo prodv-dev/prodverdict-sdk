@@ -1,5 +1,7 @@
 ## Product Phases
 
+**Implementation status (2026-06):** Phase 1 Access (shipped), Phase 2 Config (v0.4+), Phase 3 Migration static SQL (v0.5+, see [phase-3-design.md](phase-3-design.md)). Phases 4–5 planned.
+
 The ProdVerdict vision revolves around building a **production contract system** for AI‑assisted development.  The effort is sequenced into clear phases, each delivering a standalone contract with immediate value while laying the groundwork for a unified platform.
 
 ### Phase 1 – Access Contract (Paid‑Access Verification)

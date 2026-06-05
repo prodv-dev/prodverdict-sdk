@@ -5,6 +5,8 @@ import { resolve } from 'path';
 import {
   parseConfigFile,
   evaluateAccess,
+  evaluateConfig,
+  evaluateMigration,
   aggregateVerdict,
   createLiveBillingReader,
   createLivePostgresReader,
@@ -17,7 +19,7 @@ const DEFAULT_CONFIG = './prodverdict.yml';
 
 const server = new McpServer({
   name: 'prodverdict',
-  version: '0.0.1',
+  version: '0.5.0',
 });
 
 /**
@@ -88,6 +90,124 @@ server.tool(
 );
 
 /**
+ * Run the config contract check (env vars vs .env.example and required rules).
+ */
+server.tool(
+  'check_config_contract',
+  'Run the ProdVerdict config contract check. Scans the repo for process.env references, ' +
+    'validates required variables, and compares against .env.example. Use before PRs that add ' +
+    'new environment variables or deployment configuration.',
+  {
+    configPath: z
+      .string()
+      .optional()
+      .describe('Path to prodverdict.yml. Defaults to ./prodverdict.yml'),
+    repoRoot: z
+      .string()
+      .optional()
+      .describe('Repository root to scan. Defaults to current working directory'),
+  },
+  async ({ configPath, repoRoot }) => {
+    try {
+      const path = resolve(configPath ?? DEFAULT_CONFIG);
+      const cfg = parseConfigFile(path);
+      const configCfg = cfg.contracts.find((c) => c.type === 'config');
+      if (!configCfg) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ error: 'No config contract defined in prodverdict.yml.' }),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      const findings = await evaluateConfig(configCfg, {
+        repoRoot: repoRoot ? resolve(repoRoot) : process.cwd(),
+        env: process.env as Record<string, string | undefined>,
+      });
+      const verdict = aggregateVerdict(findings);
+
+      const result: CheckResult = {
+        contract: 'config',
+        verdict,
+        findings,
+        evaluatedAt: new Date().toISOString(),
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (err) {
+      const message = isProdVerdictError(err)
+        ? `[${err.code}] ${err.message}`
+        : String(err);
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
+        isError: true,
+      };
+    }
+  },
+);
+
+/**
+ * Run the migration contract check (static SQL migration safety).
+ */
+server.tool(
+  'check_migration_contract',
+  'Run the ProdVerdict migration contract check. Scans SQL migration files for unsafe Postgres DDL ' +
+    '(non-concurrent indexes, destructive statements). Use before merging database migrations.',
+  {
+    configPath: z.string().optional().describe('Path to prodverdict.yml'),
+    repoRoot: z.string().optional().describe('Repository root to scan'),
+  },
+  async ({ configPath, repoRoot }) => {
+    try {
+      const path = resolve(configPath ?? DEFAULT_CONFIG);
+      const cfg = parseConfigFile(path);
+      const migrationCfg = cfg.contracts.find((c) => c.type === 'migration');
+      if (!migrationCfg) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ error: 'No migration contract defined in prodverdict.yml.' }),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      const findings = await evaluateMigration(migrationCfg, {
+        repoRoot: repoRoot ? resolve(repoRoot) : process.cwd(),
+      });
+      const verdict = aggregateVerdict(findings);
+
+      const result: CheckResult = {
+        contract: 'migration',
+        verdict,
+        findings,
+        evaluatedAt: new Date().toISOString(),
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (err) {
+      const message = isProdVerdictError(err)
+        ? `[${err.code}] ${err.message}`
+        : String(err);
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
+        isError: true,
+      };
+    }
+  },
+);
+
+/**
  * Parse and validate prodverdict.yml without running checks.
  */
 server.tool(
@@ -134,7 +254,7 @@ server.tool(
 server.tool(
   'suggest_fix',
   'Extract fix suggestions from a list of ProdVerdict findings. Returns unique, deduplicated fix instructions ' +
-    'that an AI agent can apply to resolve access contract violations. No LLM is used — suggestions come ' +
+    'that an AI agent can apply to resolve contract violations (access or config). No LLM is used — suggestions come ' +
     'directly from the contract definitions.',
   {
     findings: z
@@ -147,7 +267,7 @@ server.tool(
           fix: z.string().optional(),
         }),
       )
-      .describe('Array of findings from check_access_contract output'),
+      .describe('Array of findings from check_access_contract or check_config_contract output'),
   },
   async ({ findings }) => {
     const fixes = (findings as Finding[])
@@ -162,7 +282,7 @@ server.tool(
           text: JSON.stringify({
             fixes: unique,
             count: unique.length,
-            note: 'These are deterministic fix hints from the contract definition. Apply them and re-run check_access_contract.',
+            note: 'These are deterministic fix hints from the contract definition. Apply them and re-run the relevant check tool.',
           }),
         },
       ],

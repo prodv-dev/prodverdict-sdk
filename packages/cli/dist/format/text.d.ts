@@ -1,3 +1,4 @@
 import type { CheckResult } from '@prodverdict/engine';
-export declare function formatTextResult(result: CheckResult): string;
+import type { AggregateCheckOutput } from '../run-check.js';
+export declare function formatTextResult(result: CheckResult | AggregateCheckOutput): string;
 //# sourceMappingURL=text.d.ts.map

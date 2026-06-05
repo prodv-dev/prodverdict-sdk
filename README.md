@@ -62,9 +62,15 @@ npx prodverdict check access --config prodverdict.yml
 
 ### Config contract (env vars)
 
+Catches vibecoding drift: `process.env` references missing from `.env.example`, unset required secrets in CI.
+
 ```bash
 npx prodverdict check config --config prodverdict.yml
+# or use the full template (access + config):
+npx prodverdict check config --config examples/nextjs-stripe/prodverdict.full.yml
 ```
+
+`npx prodverdict init` writes **access + config** by default. Use `--access-only` to skip the config block.
 
 ### Validate YAML only
 
@@ -79,7 +85,7 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-action@v0.3.0
+- uses: prodv-dev/prodverdict-action@v0.4.0
   with:
     config: ./prodverdict.yml
     contract: access
@@ -109,7 +115,7 @@ Install from [GitHub Marketplace](https://github.com/marketplace/actions/prodver
 }
 ```
 
-Tools: `check_access_contract`, `validate_config`, `suggest_fix`.
+Tools: `check_access_contract`, `check_config_contract`, `check_migration_contract`, `validate_config`, `suggest_fix`.
 
 ## What the Access Contract checks
 
@@ -161,13 +167,30 @@ export PRODVERDICT_PROJECT_ID=...
 npx prodverdict check access --fixtures --upload
 ```
 
+## v0.5 — migration contract
+
+```bash
+npx prodverdict check migration --config examples/nextjs-stripe/prodverdict.migration.yml
+npx prodverdict check all   # every contract in prodverdict.yml
+```
+
+MCP: `check_migration_contract`. See [docs/phase-3-design.md](../docs/phase-3-design.md).
+
+## v0.4 — config contract + GitHub connect
+
+- `prodverdict init` includes **access + config** contracts by default
+- MCP: `check_config_contract`
+- Example: [examples/nextjs-stripe/prodverdict.full.yml](examples/nextjs-stripe/prodverdict.full.yml)
+- PR config workflow: [examples/workflows/prodverdict-pr-config.yml](examples/workflows/prodverdict-pr-config.yml)
+- Dashboard: connect GitHub App to a project (install URL from project setup)
+
 ## v0.3 — ops in CI + run history
 
 Checks still run **only in your CI** (Stripe/DB secrets never leave your runner). v0.3 adds scheduled workflows, Slack on fail/warn, and dashboard upload from CLI or Action.
 
 **Nightly + Slack + upload** — copy [examples/workflows/prodverdict-scheduled.yml](examples/workflows/prodverdict-scheduled.yml):
 
-- `prodv-dev/prodverdict-action@v0.3.0`
+- `prodv-dev/prodverdict-action@v0.4.0`
 - `slack_webhook_url` → `secrets.SLACK_WEBHOOK_URL`
 - `PRODVERDICT_API_URL`, `PRODVERDICT_API_KEY`, `PRODVERDICT_PROJECT_ID` — uploads on pass **and** fail
 

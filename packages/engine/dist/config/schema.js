@@ -59,8 +59,20 @@ const ConfigContractSchema = z.object({
     check_placeholders: z.boolean().default(true),
     ignore_vars: z.array(z.string()).default([]),
 });
+// ── Migration Contract ─────────────────────────────────────────────────────────
+const MigrationContractSchema = z.object({
+    type: z.literal('migration'),
+    paths: z.array(z.string().min(1)).min(1),
+    severity: SeveritySchema.default('high'),
+    fix: z.string().optional(),
+});
 // ── Union ──────────────────────────────────────────────────────────────────────
-const ContractSchema = z.union([AccessContractStripeSchema, AccessContractPaddleSchema, ConfigContractSchema]);
+const ContractSchema = z.union([
+    AccessContractStripeSchema,
+    AccessContractPaddleSchema,
+    ConfigContractSchema,
+    MigrationContractSchema,
+]);
 export const ProdVerdictConfigSchema = z.object({
     version: z.literal(1),
     contracts: z.array(ContractSchema).min(1),

@@ -4,6 +4,7 @@ import {
   parseConfigFile,
   evaluateAccess,
   evaluateConfig,
+  evaluateMigration,
   aggregateVerdict,
   createLiveBillingReader,
   createLivePostgresReader,
@@ -15,6 +16,8 @@ import {
   type CheckResult,
   type AccessDataSources,
   type ConfigDataSources,
+  type Finding,
+  type Verdict,
 } from '@prodverdict/engine';
 
 export interface RunCheckOptions {
@@ -33,14 +36,45 @@ export interface RunCheckOptions {
   upload?: boolean | undefined;
 }
 
+export interface AggregateCheckOutput {
+  verdict: Verdict;
+  findings: Finding[];
+  evaluatedAt: string;
+  results: CheckResult[];
+}
+
 const EXIT_PASS = 0;
 const EXIT_FAIL = 1;
 
-export async function runCheck(opts: RunCheckOptions): Promise<{ result: CheckResult; exitCode: number }> {
+export async function runCheck(
+  opts: RunCheckOptions,
+): Promise<{ result: CheckResult | AggregateCheckOutput; exitCode: number }> {
   const configPath = resolve(opts.config);
   const cfg = parseConfigFile(configPath);
-
   const contract = (opts.contract ?? 'access').toLowerCase();
+
+  if (contract === 'all') {
+    const results: CheckResult[] = [];
+    const types = [...new Set(cfg.contracts.map((c) => c.type))];
+    for (const type of types) {
+      const { result } = await runCheck({ ...opts, contract: type });
+      results.push(result as CheckResult);
+    }
+    const findings = results.flatMap((r) => r.findings);
+    const verdict = aggregateVerdict(findings);
+    const aggregate: AggregateCheckOutput = {
+      verdict,
+      findings,
+      evaluatedAt: new Date().toISOString(),
+      results,
+    };
+    if (opts.upload) {
+      for (const r of results) {
+        await maybeUpload(r, true);
+      }
+    }
+    return { result: aggregate, exitCode: resolveExitCode(verdict, opts.strict ?? false) };
+  }
 
   if (contract === 'config') {
     const configCfg = cfg.contracts.find((c) => c.type === 'config');
@@ -58,6 +92,28 @@ export async function runCheck(opts: RunCheckOptions): Promise<{ result: CheckRe
 
     const result: CheckResult = {
       contract: 'config',
+      verdict,
+      findings,
+      evaluatedAt: new Date().toISOString(),
+    };
+
+    await maybeUpload(result, opts.upload);
+    return { result, exitCode: resolveExitCode(verdict, opts.strict ?? false) };
+  }
+
+  if (contract === 'migration') {
+    const migrationCfg = cfg.contracts.find((c) => c.type === 'migration');
+    if (!migrationCfg) {
+      throw makeUsageError('No migration contract defined in prodverdict.yml.');
+    }
+
+    const findings = await evaluateMigration(migrationCfg, {
+      repoRoot: opts.repoRoot ?? process.cwd(),
+    });
+    const verdict = aggregateVerdict(findings);
+
+    const result: CheckResult = {
+      contract: 'migration',
       verdict,
       findings,
       evaluatedAt: new Date().toISOString(),
@@ -100,7 +156,7 @@ export async function runCheck(opts: RunCheckOptions): Promise<{ result: CheckRe
     }
   }
 
-  throw makeUsageError(`Unknown contract type "${contract}". Supported: access, config.`);
+  throw makeUsageError(`Unknown contract type "${contract}". Supported: access, config, migration, all.`);
 }
 
 async function maybeUpload(result: CheckResult, uploadFlag?: boolean): Promise<void> {

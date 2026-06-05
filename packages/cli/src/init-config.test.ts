@@ -10,6 +10,7 @@ describe('writeInitConfig', () => {
     const path = writeInitConfig(dir, 'paddle-stripe', 'prodverdict.yml');
     const content = readFileSync(path, 'utf8');
     expect(content).toContain('source_of_truth: paddle');
+    expect(content).toContain('type: config');
     unlinkSync(path);
   });
 });

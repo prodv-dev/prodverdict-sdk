@@ -1,6 +1,6 @@
 {
   "name": "prodverdict",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "CLI for ProdVerdict — deterministic production contract checks for AI-assisted SaaS",
   "license": "MIT",
   "type": "module",
@@ -29,7 +29,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@prodverdict/engine": "0.3.0",
+    "@prodverdict/engine": "*",
     "chalk": "^5.3.0",
     "commander": "^12.1.0"
   }
