@@ -2,7 +2,7 @@
 
 **Deterministic production contract checks for AI-assisted SaaS.**
 
-ProdVerdict compares Stripe subscription state to your database access flags, scans env var coverage, and fails CI when invariants break — no LLM in the evaluation path.
+ProdVerdict runs **deterministic production contracts** in CI: billing vs database access (Stripe or Paddle), env var drift, and unsafe Postgres migrations — no LLM in the evaluation path.
 
 **Website:** [prodverdict.com](https://prodverdict.com)
 
@@ -13,13 +13,25 @@ ProdVerdict compares Stripe subscription state to your database access flags, sc
 
 ## 5-minute quickstart
 
-**No credentials required** — run against fixture data:
+**No credentials required** — clone the SDK for fixture paths, then run:
 
 ```bash
+git clone --depth=1 https://github.com/prodv-dev/prodverdict-sdk.git
+cd prodverdict-sdk
+
 npx prodverdict check access \
   --config examples/nextjs-stripe/prodverdict.yml \
   --fixtures \
   --fixtures-dir examples/nextjs-stripe/scenarios/fail-revenue-leak
+```
+
+**Paddle + Postgres:**
+
+```bash
+npx prodverdict check access \
+  --config examples/paddle-stripe/prodverdict.yml \
+  --fixtures \
+  --fixtures-dir examples/paddle-stripe/scenarios/fail-revenue-leak
 ```
 
 You should see a **FAIL** verdict: user has an active Stripe subscription but `has_paid_access` is false (revenue leak).
@@ -85,10 +97,10 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-action@v0.4.0
+- uses: prodv-dev/prodverdict-action@v0.5.0
   with:
     config: ./prodverdict.yml
-    contract: access
+    contract: access   # access | config | migration
     strict: false
   env:
     STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_KEY }}
@@ -96,7 +108,9 @@ npx prodverdict validate --config prodverdict.yml
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.3.0`
+**Paddle + Postgres:** use `examples/paddle-stripe/prodverdict.yml` and set `PADDLE_API_KEY` instead of Stripe.
+
+Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.5.0`
 
 The action runs against **your repository** (not the SDK checkout), posts findings as a PR comment, and fails on high-severity access violations.
 
@@ -190,7 +204,7 @@ Checks still run **only in your CI** (Stripe/DB secrets never leave your runner)
 
 **Nightly + Slack + upload** — copy [examples/workflows/prodverdict-scheduled.yml](examples/workflows/prodverdict-scheduled.yml):
 
-- `prodv-dev/prodverdict-action@v0.4.0`
+- `prodv-dev/prodverdict-action@v0.5.0`
 - `slack_webhook_url` → `secrets.SLACK_WEBHOOK_URL`
 - `PRODVERDICT_API_URL`, `PRODVERDICT_API_KEY`, `PRODVERDICT_PROJECT_ID` — uploads on pass **and** fail
 
