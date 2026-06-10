@@ -1,19 +1,20 @@
 import { Command } from 'commander';
-import { parseConfigFile, isProdVerdictError } from '@prodverdict/engine';
+import { parseConfigFile, isProdVerdictError, toAgentCheckOutput, toAgentAggregateOutput, } from '@prodverdict/engine';
 import { resolve } from 'path';
 import { runCheck } from './run-check.js';
 import { formatTextResult } from './format/text.js';
-import { writeInitConfig } from './init-config.js';
+import { writeInitConfig, writeMcpConfig, writeCursorRule } from './init-config.js';
+import { runDoctorCli, formatDoctorText } from './doctor-cli.js';
 const program = new Command();
 program
     .name('prodverdict')
     .description('Deterministic production contract verification for AI-assisted SaaS')
-    .version('0.5.0');
+    .version('0.6.0');
 program
     .command('check [contract]')
-    .description('Run contract checks: access (default), config, migration, or all. Use --format json for machine-readable output.')
+    .description('Run contract checks: access (default), config, migration, or all. Use --format json|agent for machine-readable output.')
     .option('-c, --config <path>', 'Path to prodverdict.yml', './prodverdict.yml')
-    .option('-f, --format <format>', 'Output format: text or json', 'text')
+    .option('-f, --format <format>', 'Output format: text, json, or agent', 'text')
     .option('--fixtures', 'Use fixture JSON from fixtures/ instead of live credentials')
     .option('--fixtures-dir <path>', 'Directory containing stripe/ and db/ fixture JSON')
     .option('--fixtures-stripe [dir]', 'Use live Postgres + Stripe fixture JSON from dir (default: scenarios/pass next to config)')
@@ -22,7 +23,7 @@ program
     .option('--upload', 'Upload JSON result to PRODVERDICT_API_URL (requires API key env vars)')
     .action(async (contract, options) => {
     try {
-        const format = options.format === 'json' ? 'json' : 'text';
+        const format = parseOutputFormat(options.format);
         const fixturesStripeDir = typeof options.fixturesStripe === 'string'
             ? options.fixturesStripe
             : options.fixturesStripe
@@ -40,11 +41,34 @@ program
             repoRoot: options.repoRoot,
             upload: options.upload,
         });
-        if (format === 'json') {
+        writeCheckOutput(result, format, exitCode, options.strict ?? false);
+        process.exit(exitCode);
+    }
+    catch (err) {
+        handleError(err);
+    }
+});
+program
+    .command('doctor')
+    .description('Diagnose prodverdict.yml and required credentials without running full contract checks.')
+    .option('-c, --config <path>', 'Path to prodverdict.yml', './prodverdict.yml')
+    .option('-f, --format <format>', 'Output format: text, json, or agent', 'text')
+    .option('--repo-root <path>', 'Repo root for config contract checks (default: cwd)')
+    .option('--skip-connectivity', 'Skip live Stripe/Paddle/Postgres connectivity pings')
+    .action(async (options) => {
+    try {
+        const format = parseOutputFormat(options.format);
+        const { result, exitCode } = await runDoctorCli({
+            config: options.config,
+            format,
+            repoRoot: options.repoRoot,
+            skipConnectivity: options.skipConnectivity,
+        });
+        if (format === 'json' || format === 'agent') {
             process.stdout.write(JSON.stringify(result, null, 2) + '\n');
         }
         else {
-            process.stdout.write(formatTextResult(result) + '\n');
+            process.stdout.write(formatDoctorText(result));
         }
         process.exit(exitCode);
     }
@@ -58,6 +82,8 @@ program
     .option('-s, --stack <stack>', 'Template: nextjs-stripe, supabase-stripe, paddle-stripe, rails-stripe', 'nextjs-stripe')
     .option('-o, --output <path>', 'Output file', 'prodverdict.yml')
     .option('--access-only', 'Omit config contract block (access contract only)')
+    .option('--mcp', 'Also write .cursor/mcp.json for local MCP checks')
+    .option('--cursor-rule', 'Also write .cursor/rules/prodverdict-agent.mdc')
     .action((options) => {
     const stacks = ['nextjs-stripe', 'supabase-stripe', 'paddle-stripe', 'rails-stripe'];
     const stack = options.stack;
@@ -71,6 +97,14 @@ program
             includeConfig: !options.accessOnly,
         });
         process.stdout.write(`✔ Wrote ${path}\n`);
+        if (options.mcp) {
+            const mcpPath = writeMcpConfig(process.cwd(), stack);
+            process.stdout.write(`✔ Wrote ${mcpPath}\n`);
+        }
+        if (options.cursorRule) {
+            const rulePath = writeCursorRule(process.cwd());
+            process.stdout.write(`✔ Wrote ${rulePath}\n`);
+        }
         process.exit(0);
     }
     catch (err) {
@@ -81,17 +115,53 @@ program
     .command('validate')
     .description('Parse and validate prodverdict.yml without running checks.')
     .option('-c, --config <path>', 'Path to prodverdict.yml', './prodverdict.yml')
+    .option('-f, --format <format>', 'Output format: text or json', 'text')
     .action(async (options) => {
     try {
         const cfg = parseConfigFile(resolve(options.config));
         const count = cfg.contracts.length;
-        process.stdout.write(`✔ prodverdict.yml is valid — ${count} contract(s) defined.\n`);
+        if (options.format === 'json') {
+            process.stdout.write(JSON.stringify({
+                valid: true,
+                contracts: cfg.contracts.map((c) => ({ type: c.type })),
+            }, null, 2) + '\n');
+        }
+        else {
+            process.stdout.write(`✔ prodverdict.yml is valid — ${count} contract(s) defined.\n`);
+        }
         process.exit(0);
     }
     catch (err) {
+        if (options.format === 'json' && isProdVerdictError(err)) {
+            process.stdout.write(JSON.stringify({ valid: false, error: err.message, code: err.code }, null, 2) + '\n');
+            process.exit(2);
+        }
         handleError(err);
     }
 });
+function parseOutputFormat(format) {
+    if (format === 'json' || format === 'agent')
+        return format;
+    return 'text';
+}
+function writeCheckOutput(result, format, exitCode, strict) {
+    if (format === 'agent') {
+        if ('results' in result) {
+            const agent = toAgentAggregateOutput(result.verdict, result.findings, result.evaluatedAt, result.results, exitCode, strict);
+            process.stdout.write(JSON.stringify(agent, null, 2) + '\n');
+        }
+        else {
+            const agent = toAgentCheckOutput(result, exitCode, strict);
+            process.stdout.write(JSON.stringify(agent, null, 2) + '\n');
+        }
+        return;
+    }
+    if (format === 'json') {
+        process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+        return;
+    }
+    process.stdout.write(formatTextResult(result) + '\n');
+}
 function handleError(err) {
     if (isProdVerdictError(err)) {
         process.stderr.write(`Error [${err.code}]: ${err.message}\n`);

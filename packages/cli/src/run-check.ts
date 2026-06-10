@@ -23,7 +23,7 @@ import {
 export interface RunCheckOptions {
   config: string;
   contract?: string | undefined;
-  format: 'json' | 'text';
+  format: 'json' | 'text' | 'agent';
   fixtures?: boolean | undefined;
   fixturesDir?: string | undefined;
   /** Live Postgres + Stripe data from fixture JSON (for local test environments) */

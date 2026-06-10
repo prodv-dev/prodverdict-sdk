@@ -12,3 +12,12 @@ export type { ConfigDataSources } from './evaluators/config.js';
 export { evaluateMigration } from './evaluators/migration.js';
 export type { MigrationDataSources } from './evaluators/migration.js';
 export { aggregateVerdict } from './verdict.js';
+export { runDoctor } from './doctor.js';
+export type { DoctorResult, DoctorCheck, DoctorCheckStatus, RunDoctorOptions } from './doctor.js';
+export {
+  toAgentCheckOutput,
+  toAgentAggregateOutput,
+  toAgentDoctorOutput,
+  AGENT_SCHEMA_VERSION,
+} from './agent-format.js';
+export type { AgentCheckOutput, AgentAggregateOutput, AgentDoctorOutput } from './agent-format.js';

@@ -583,7 +583,6 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         fix?: string | undefined;
     }>]>, "many">;
 }, "strip", z.ZodTypeAny, {
-    version: 1;
     contracts: ({
         type: "access";
         database: {
@@ -646,8 +645,8 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         paths: string[];
         fix?: string | undefined;
     })[];
-}, {
     version: 1;
+}, {
     contracts: ({
         type: "access";
         database: {
@@ -710,6 +709,7 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         severity?: "high" | "medium" | "low" | undefined;
         fix?: string | undefined;
     })[];
+    version: 1;
 }>;
 export type ProdVerdictConfig = z.infer<typeof ProdVerdictConfigSchema>;
 export {};

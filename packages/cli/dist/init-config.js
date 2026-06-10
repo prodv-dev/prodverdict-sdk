@@ -1,5 +1,9 @@
-import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildMcpJson } from './mcp-config.js';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const CURSOR_RULE_SOURCE = join(__dirname, '../../../examples/cursor/prodverdict-agent.mdc');
 const CONFIG_BLOCK_STRIPE = `  - type: config
     severity: medium
     scan_references: true
@@ -117,6 +121,21 @@ export function writeInitConfig(cwd, stack, outFile = 'prodverdict.yml', options
     const includeConfig = options?.includeConfig !== false;
     const path = resolve(cwd, outFile);
     const content = includeConfig ? TEMPLATES[stack] : buildTemplate(stack, false);
+    writeFileSync(path, content, 'utf8');
+    return path;
+}
+export function writeMcpConfig(cwd, stack) {
+    const dir = resolve(cwd, '.cursor');
+    mkdirSync(dir, { recursive: true });
+    const path = resolve(dir, 'mcp.json');
+    writeFileSync(path, JSON.stringify(buildMcpJson(stack), null, 2) + '\n', 'utf8');
+    return path;
+}
+export function writeCursorRule(cwd) {
+    const dir = resolve(cwd, '.cursor/rules');
+    mkdirSync(dir, { recursive: true });
+    const path = resolve(dir, 'prodverdict-agent.mdc');
+    const content = readFileSync(CURSOR_RULE_SOURCE, 'utf8');
     writeFileSync(path, content, 'utf8');
     return path;
 }

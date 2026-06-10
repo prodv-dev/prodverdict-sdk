@@ -12,21 +12,30 @@ const VERDICT_EMOJI: Record<CheckResult['verdict'], string> = {
   pass: '✅',
 };
 
+const CONTRACT_LABEL: Record<CheckResult['contract'], string> = {
+  access: 'Access Contract',
+  config: 'Config Contract',
+  migration: 'Migration Contract',
+  boundary: 'Boundary Contract',
+  restore: 'Restore Contract',
+};
+
 const MARKER = '<!-- prodverdict-comment -->';
 
 export function buildComment(result: CheckResult): string {
   const icon = VERDICT_EMOJI[result.verdict];
   const verdict = result.verdict.toUpperCase();
+  const contractLabel = CONTRACT_LABEL[result.contract] ?? `${result.contract} contract`;
   const lines: string[] = [
     MARKER,
-    `## ${icon} ProdVerdict — Access Contract [${verdict}]`,
+    `## ${icon} ProdVerdict — ${contractLabel} [${verdict}]`,
     '',
     `**Evaluated at:** ${result.evaluatedAt}`,
     '',
   ];
 
   if (result.findings.length === 0) {
-    lines.push('All access state is in sync with Stripe. No violations found.');
+    lines.push(`No violations found for the ${contractLabel.toLowerCase()}.`);
     return lines.join('\n');
   }
 

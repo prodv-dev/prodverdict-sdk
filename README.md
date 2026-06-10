@@ -97,7 +97,7 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-action@v0.5.0
+- uses: prodv-dev/prodverdict-action@v0.6.0
   with:
     config: ./prodverdict.yml
     contract: access   # access | config | migration
@@ -110,11 +110,28 @@ npx prodverdict validate --config prodverdict.yml
 
 **Paddle + Postgres:** use `examples/paddle-stripe/prodverdict.yml` and set `PADDLE_API_KEY` instead of Stripe.
 
-Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.5.0`
+Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.6.0`
 
 The action runs against **your repository** (not the SDK checkout), posts findings as a PR comment, and fails on high-severity access violations.
 
 Install from [GitHub Marketplace](https://github.com/marketplace/actions/prodverdict) or reference the tag directly as shown above.
+
+## Agent workflow (v0.6)
+
+For Cursor, Claude Code, and other coding agents:
+
+```bash
+# Scaffold config + Cursor MCP + agent rule
+npx prodverdict init --stack nextjs-stripe --mcp --cursor-rule
+
+# Diagnose credentials before full checks
+npx prodverdict doctor --format agent
+
+# Run all contracts — stable agent JSON (schemaVersion: "1")
+npx prodverdict check all --format agent
+```
+
+Agent output includes `summary`, `nextSteps`, and `exitCode` — same shape from MCP check tools.
 
 ## MCP (Cursor / Claude Code)
 
@@ -123,13 +140,19 @@ Install from [GitHub Marketplace](https://github.com/marketplace/actions/prodver
   "mcpServers": {
     "prodverdict": {
       "command": "npx",
-      "args": ["-y", "@prodverdict/mcp"]
+      "args": ["-y", "@prodverdict/mcp"],
+      "env": {
+        "DATABASE_URL": "postgresql://readonly:...@host/db",
+        "STRIPE_SECRET_KEY": "rk_live_..."
+      }
     }
   }
 }
 ```
 
-Tools: `check_access_contract`, `check_config_contract`, `check_migration_contract`, `validate_config`, `suggest_fix`.
+Tools: `doctor`, `check_all_contracts`, `check_access_contract`, `check_config_contract`, `check_migration_contract`, `validate_config`, `suggest_fix`.
+
+Prompts: `setup_prodverdict`, `verify_before_pr`. See [docs/mcp-design.md](../docs/mcp-design.md).
 
 ## What the Access Contract checks
 
@@ -180,6 +203,13 @@ export PRODVERDICT_API_KEY=pv_...
 export PRODVERDICT_PROJECT_ID=...
 npx prodverdict check access --fixtures --upload
 ```
+
+## v0.6 — agent tooling
+
+- `prodverdict doctor` — fast credential/config diagnostics
+- `--format agent` — stable JSON for AI agents
+- `init --mcp --cursor-rule` — Cursor setup in one command
+- MCP: `doctor`, `check_all_contracts`, fixture mode, prompts, resources
 
 ## v0.5 — migration contract
 

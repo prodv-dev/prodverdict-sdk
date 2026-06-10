@@ -1,0 +1,37 @@
+---
+description: ProdVerdict production contract checks for AI-assisted SaaS
+globs: prodverdict.yml,prodverdict.yaml,.github/workflows/*prodverdict*
+---
+
+# ProdVerdict agent workflow
+
+ProdVerdict runs **deterministic** production contract checks — no LLM in the evaluation path.
+
+## Before opening a PR
+
+1. Run `npx prodverdict doctor --format agent` — verify config and credentials.
+2. Run `npx prodverdict check all --format agent` — access, config, and migration contracts.
+3. If findings exist, apply `fix` hints from the output and re-run until pass.
+
+## Rules
+
+- **Fail closed:** missing credentials must fail checks, never pass silently.
+- **No secrets in git:** never commit API keys, database URLs, or webhook secrets.
+- **Merge blocking is CI:** local MCP/CLI verifies work; GitHub Actions enforces on PR.
+- **Customize prodverdict.yml:** replace placeholder price IDs (`price_your_*` / `pri_your_*`) with real billing price IDs.
+
+## MCP tools (optional)
+
+- `doctor` — diagnose config and env vars
+- `check_all_contracts` — run every configured contract
+- `check_access_contract` / `check_config_contract` / `check_migration_contract`
+- `validate_config` — parse prodverdict.yml only
+- `suggest_fix` — extract fix hints from findings (no LLM)
+
+## Fixture demo (no credentials)
+
+```bash
+npx prodverdict check access --fixtures \
+  --config examples/nextjs-stripe/prodverdict.yml \
+  --fixtures-dir examples/nextjs-stripe/scenarios/fail-revenue-leak
+```
