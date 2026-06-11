@@ -25,7 +25,7 @@ const fixturesDirSchema = z
     .describe('Directory containing stripe/ or paddle/ and db/ fixture JSON');
 const server = new McpServer({
     name: 'prodverdict',
-    version: '0.6.0',
+    version: '0.7.0',
 });
 function toolError(err) {
     const message = isProdVerdictError(err)

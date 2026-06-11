@@ -13,6 +13,16 @@ export function validateConfig(raw) {
     }
     return result.data;
 }
+export function parseConfigYaml(text, label = 'prodverdict.yml') {
+    let raw;
+    try {
+        raw = parseYaml(text);
+    }
+    catch (err) {
+        throw makeConfigError(`Failed to parse YAML in "${label}": ${String(err)}`);
+    }
+    return validateConfig(raw);
+}
 export function parseConfigFile(filePath) {
     let text;
     try {
@@ -21,14 +31,7 @@ export function parseConfigFile(filePath) {
     catch (err) {
         throw makeConfigError(`Cannot read config file at "${filePath}": ${String(err)}`);
     }
-    let raw;
-    try {
-        raw = parseYaml(text);
-    }
-    catch (err) {
-        throw makeConfigError(`Failed to parse YAML in "${filePath}": ${String(err)}`);
-    }
-    return validateConfig(raw);
+    return parseConfigYaml(text, filePath);
 }
 function formatZodError(err) {
     const lines = err.issues.map((issue) => {

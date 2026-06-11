@@ -42,7 +42,7 @@ const fixturesDirSchema = z
 
 const server = new McpServer({
   name: 'prodverdict',
-  version: '0.6.0',
+  version: '0.7.0',
 });
 
 function toolError(err: unknown) {

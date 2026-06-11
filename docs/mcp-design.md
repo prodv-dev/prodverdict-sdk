@@ -58,9 +58,9 @@ Or add to `.cursor/mcp.json`:
 }
 ```
 
-## Remote MCP (v0.7+ — planned)
+## Remote MCP (v0.7 — shipped)
 
-Hosted at prodverdict.com for agents that cannot run local billing connectors.
+Hosted at `https://prodverdict.com/api/mcp` for agents that cannot run local billing connectors.
 
 ### What remote MCP will NOT do
 
@@ -85,6 +85,24 @@ Cursor → HTTPS MCP (prodverdict.com)
 ```
 
 No subscription rows or Stripe customer data stored on ProdVerdict cloud.
+
+### Cursor config (remote)
+
+```json
+{
+  "mcpServers": {
+    "prodverdict-remote": {
+      "url": "https://prodverdict.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer pv_...",
+        "X-Prodverdict-Project-Id": "project-uuid"
+      }
+    }
+  }
+}
+```
+
+Access checks with live Stripe/Paddle + DB remain on **local MCP** only.
 
 ## CLI agent workflow
 

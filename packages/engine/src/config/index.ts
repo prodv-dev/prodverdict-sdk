@@ -1,4 +1,4 @@
-export { parseConfigFile, validateConfig } from './parse.js';
+export { parseConfigFile, parseConfigYaml, validateConfig } from './parse.js';
 export {
   ProdVerdictConfigSchema,
   type ProdVerdictConfig,

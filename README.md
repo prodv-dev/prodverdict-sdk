@@ -97,7 +97,7 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-action@v0.6.0
+- uses: prodv-dev/prodverdict-action@v0.7.0
   with:
     config: ./prodverdict.yml
     contract: access   # access | config | migration
@@ -110,13 +110,33 @@ npx prodverdict validate --config prodverdict.yml
 
 **Paddle + Postgres:** use `examples/paddle-stripe/prodverdict.yml` and set `PADDLE_API_KEY` instead of Stripe.
 
-Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.6.0`
+Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.7.0`
 
 The action runs against **your repository** (not the SDK checkout), posts findings as a PR comment, and fails on high-severity access violations.
 
 Install from [GitHub Marketplace](https://github.com/marketplace/actions/prodverdict) or reference the tag directly as shown above.
 
-## Agent workflow (v0.6)
+## Remote MCP (v0.7)
+
+Hosted at [prodverdict.com/api/mcp](https://prodverdict.com/api/mcp) for config/migration checks without local billing credentials. GitHub App reads repo files only — no Stripe/DB secrets on ProdVerdict cloud.
+
+```json
+{
+  "mcpServers": {
+    "prodverdict-remote": {
+      "url": "https://prodverdict.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer pv_...",
+        "X-Prodverdict-Project-Id": "your-project-uuid"
+      }
+    }
+  }
+}
+```
+
+Tools: `validate_config` (free), `check_config_contract`, `check_migration_contract`, `get_recent_runs` (Pro). Access contract stays on **local MCP** only. See [docs/mcp-design.md](../docs/mcp-design.md).
+
+## Agent workflow (v0.6+)
 
 For Cursor, Claude Code, and other coding agents:
 
@@ -204,12 +224,19 @@ export PRODVERDICT_PROJECT_ID=...
 npx prodverdict check access --fixtures --upload
 ```
 
+## v0.7 — remote MCP
+
+- `https://prodverdict.com/api/mcp` — Streamable HTTP remote server
+- GitHub-only repo reads for config + migration contracts (Pro)
+- `get_recent_runs` via dashboard API key (Pro)
+- `parseConfigYaml` in engine; `createRemoteMcpServer` in `@prodverdict/mcp`
+
 ## v0.6 — agent tooling
 
 - `prodverdict doctor` — fast credential/config diagnostics
 - `--format agent` — stable JSON for AI agents
 - `init --mcp --cursor-rule` — Cursor setup in one command
-- MCP: `doctor`, `check_all_contracts`, fixture mode, prompts, resources
+- Local MCP: `doctor`, `check_all_contracts`, fixture mode, prompts, resources
 
 ## v0.5 — migration contract
 
