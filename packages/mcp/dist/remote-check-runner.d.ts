@@ -24,4 +24,16 @@ export declare function runRemoteMigrationCheckFromFiles(opts: {
     configPath?: string | undefined;
 }): Promise<AgentCheckOutput>;
 export declare function resolveConfigPath(repoRoot: string, configPath?: string): string;
+export type RemoteRepoContractsOutput = {
+    schemaVersion: '1';
+    config: AgentCheckOutput;
+    migration: AgentCheckOutput;
+    verdict: 'pass' | 'fail' | 'warn';
+    exitCode: number;
+};
+export declare function runRemoteRepoContractsFromFiles(opts: {
+    files: Record<string, string>;
+    configPath?: string | undefined;
+    env?: Record<string, string | undefined> | undefined;
+}): Promise<RemoteRepoContractsOutput>;
 //# sourceMappingURL=remote-check-runner.d.ts.map

@@ -13,20 +13,37 @@ ProdVerdict runs **deterministic** production contract checks — no LLM in the 
 2. Run `npx prodverdict check all --format agent` — access, config, and migration contracts.
 3. If findings exist, apply `fix` hints from the output and re-run until pass.
 
+## Local vs remote MCP
+
+| | Local MCP (`prodverdict`) | Remote MCP (`prodverdict-remote`) |
+|---|---------------------------|-----------------------------------|
+| Access (Stripe/Paddle + DB) | Yes — secrets on your machine | No — never on cloud |
+| Config + migration | Yes | Yes — via GitHub App (Pro) |
+| Setup | `npx prodverdict init --mcp` | `npx prodverdict init --remote-mcp` or dashboard |
+
+Remote endpoint: `https://prodverdict.com/api/mcp` — tools include `validate_config`, `check_repo_contracts`, `get_recent_runs`.
+
 ## Rules
 
 - **Fail closed:** missing credentials must fail checks, never pass silently.
 - **No secrets in git:** never commit API keys, database URLs, or webhook secrets.
-- **Merge blocking is CI:** local MCP/CLI verifies work; GitHub Actions enforces on PR.
+- **Merge blocking is CI:** local/remote MCP verifies work; GitHub Actions enforces on PR.
 - **Customize prodverdict.yml:** replace placeholder price IDs (`price_your_*` / `pri_your_*`) with real billing price IDs.
 
-## MCP tools (optional)
+## MCP tools (local)
 
 - `doctor` — diagnose config and env vars
 - `check_all_contracts` — run every configured contract
 - `check_access_contract` / `check_config_contract` / `check_migration_contract`
 - `validate_config` — parse prodverdict.yml only
 - `suggest_fix` — extract fix hints from findings (no LLM)
+
+## MCP tools (remote)
+
+- `validate_config` — parse YAML or read from GitHub (free)
+- `check_repo_contracts` — config + migration in one call (Pro + GitHub)
+- `suggest_fix` — fix hints from findings
+- `get_recent_runs` — dashboard history (Pro)
 
 ## Fixture demo (no credentials)
 

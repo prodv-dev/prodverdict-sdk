@@ -1,7 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { isProdVerdictError } from '@prodverdict/engine';
-import { runRemoteValidateConfig, runRemoteConfigCheckFromFiles, runRemoteMigrationCheckFromFiles, } from './remote-check-runner.js';
+import { runRemoteValidateConfig, runRemoteConfigCheckFromFiles, runRemoteMigrationCheckFromFiles, runRemoteRepoContractsFromFiles, } from './remote-check-runner.js';
+import { registerPrompts } from './prompts.js';
+import { registerResources } from './resources.js';
+import { buildSuggestFixOutput } from './suggest-fix.js';
 const configYamlSchema = z
     .string()
     .optional()
@@ -45,7 +48,7 @@ function requireGitHub(auth) {
 export function createRemoteMcpServer(deps, getAuth) {
     const server = new McpServer({
         name: 'prodverdict-remote',
-        version: '0.7.0',
+        version: '0.8.0',
     });
     server.tool('validate_config', 'Parse and validate prodverdict.yml without running checks. Free tier — YAML upload or GitHub file read.', {
         configYaml: configYamlSchema,
@@ -110,6 +113,26 @@ export function createRemoteMcpServer(deps, getAuth) {
             return toolError(err);
         }
     });
+    server.tool('check_repo_contracts', 'Run config + migration contracts in one call via GitHub App repo read. Pro tier. No billing secrets on cloud.', {
+        configPath: configPathSchema,
+        ...repoSchema,
+    }, async ({ configPath, owner, repo, ref }) => {
+        try {
+            const auth = getAuth();
+            requirePro(auth);
+            requireGitHub(auth);
+            const files = await deps.fetchRepoFiles(auth, { owner, repo, ref });
+            const result = await runRemoteRepoContractsFromFiles({
+                files,
+                configPath,
+                env: {},
+            });
+            return toolJson(result);
+        }
+        catch (err) {
+            return toolError(err);
+        }
+    });
     server.tool('get_recent_runs', 'List recent contract runs uploaded to the ProdVerdict dashboard. Pro tier. Requires API key.', {
         limit: z
             .number()
@@ -129,6 +152,21 @@ export function createRemoteMcpServer(deps, getAuth) {
             return toolError(err);
         }
     });
+    server.tool('suggest_fix', 'Extract fix suggestions from ProdVerdict findings. Returns deduplicated fix instructions. No LLM is used.', {
+        findings: z
+            .array(z.object({
+            contract: z.string(),
+            severity: z.enum(['high', 'medium', 'low']),
+            entity: z.string(),
+            message: z.string(),
+            fix: z.string().optional(),
+        }))
+            .describe('Findings from any check_* tool output'),
+    }, async ({ findings }) => {
+        return toolJson(buildSuggestFixOutput(findings));
+    });
+    registerPrompts(server, 'remote');
+    registerResources(server);
     return server;
 }
 //# sourceMappingURL=create-remote-server.js.map

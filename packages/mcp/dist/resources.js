@@ -21,6 +21,45 @@ contracts:
 \`\`\`
 
 Compares billing subscription state vs app database. Fails on revenue leak, wrongful access, plan drift.
+
+**Local only** — requires Stripe/Paddle + DATABASE_URL on your machine or CI.
+`;
+const CONFIG_SCHEMA_DOC = `# Config contract (prodverdict.yml)
+
+\`\`\`yaml
+version: 1
+contracts:
+  - type: config
+    severity: medium
+    scan_references: true
+    env_example_file: .env.example
+    rules:
+      - type: required
+        name: DATABASE_URL
+        description: Postgres connection
+      - type: required
+        name: STRIPE_SECRET_KEY
+        description: Restricted billing key
+\`\`\`
+
+Scans \`process.env\` references vs \`.env.example\` and required rules. Catches env drift before deploy.
+
+Available via **local MCP**, **CLI**, **CI**, and **remote MCP** (GitHub repo read).
+`;
+const MIGRATION_SCHEMA_DOC = `# Migration contract (prodverdict.yml)
+
+\`\`\`yaml
+version: 1
+contracts:
+  - type: migration
+    severity: high
+    paths:
+      - migrations/**/*.sql
+\`\`\`
+
+Static analysis of SQL migrations for unsafe Postgres locks (e.g. \`CREATE INDEX\` without \`CONCURRENTLY\`).
+
+Available via **local MCP**, **CLI**, **CI**, and **remote MCP** (GitHub repo read).
 `;
 const NEXTJS_EXAMPLE = `# nextjs-stripe fixture demo (no credentials)
 
@@ -42,6 +81,24 @@ export function registerResources(server) {
                 uri: 'prodverdict://schema/access',
                 mimeType: 'text/markdown',
                 text: ACCESS_SCHEMA_DOC,
+            },
+        ],
+    }));
+    server.resource('config-schema', 'prodverdict://schema/config', async () => ({
+        contents: [
+            {
+                uri: 'prodverdict://schema/config',
+                mimeType: 'text/markdown',
+                text: CONFIG_SCHEMA_DOC,
+            },
+        ],
+    }));
+    server.resource('migration-schema', 'prodverdict://schema/migration', async () => ({
+        contents: [
+            {
+                uri: 'prodverdict://schema/migration',
+                mimeType: 'text/markdown',
+                text: MIGRATION_SCHEMA_DOC,
             },
         ],
     }));

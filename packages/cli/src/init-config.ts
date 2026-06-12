@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildMcpJson } from './mcp-config.js';
+import { buildMcpJson, buildRemoteMcpJson, writeMcpJsonFile, type RemoteMcpConfigInput } from './mcp-config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CURSOR_RULE_SOURCE = join(__dirname, '../../../examples/cursor/prodverdict-agent.mdc');
@@ -140,11 +140,11 @@ export function writeInitConfig(
 }
 
 export function writeMcpConfig(cwd: string, stack: InitStack): string {
-  const dir = resolve(cwd, '.cursor');
-  mkdirSync(dir, { recursive: true });
-  const path = resolve(dir, 'mcp.json');
-  writeFileSync(path, JSON.stringify(buildMcpJson(stack), null, 2) + '\n', 'utf8');
-  return path;
+  return writeMcpJsonFile(cwd, buildMcpJson(stack));
+}
+
+export function writeRemoteMcpConfig(cwd: string, input?: RemoteMcpConfigInput): string {
+  return writeMcpJsonFile(cwd, buildRemoteMcpJson(input));
 }
 
 export function writeCursorRule(cwd: string): string {

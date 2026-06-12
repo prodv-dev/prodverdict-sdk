@@ -1,6 +1,6 @@
 ## Product Phases
 
-**Implementation status (2026-06):** Phase 1 Access (shipped), Phase 2 Config (v0.4+), Phase 3 Migration static SQL (v0.5+, see [phase-3-design.md](phase-3-design.md)). **v0.6** local agent tooling; **v0.7** remote MCP (GitHub-read-only, no billing secrets on cloud) — see [mcp-design.md](mcp-design.md). Phases 4–5 planned.
+**Implementation status (2026-06):** Phase 1 Access (shipped), Phase 2 Config (v0.4+), Phase 3 Migration static SQL (v0.5+, see [phase-3-design.md](phase-3-design.md)). **v0.6** local agent tooling; **v0.7** remote MCP endpoint; **v0.8** remote MCP polish (prompts, `check_repo_contracts`, dashboard copy-paste) — see [mcp-design.md](mcp-design.md). Phases 4–5 planned.
 
 The ProdVerdict vision revolves around building a **production contract system** for AI‑assisted development.  The effort is sequenced into clear phases, each delivering a standalone contract with immediate value while laying the groundwork for a unified platform.
 

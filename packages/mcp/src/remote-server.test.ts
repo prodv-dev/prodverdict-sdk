@@ -6,7 +6,9 @@ import {
   runRemoteValidateConfig,
   runRemoteConfigCheckFromFiles,
   runRemoteMigrationCheckFromFiles,
+  runRemoteRepoContractsFromFiles,
 } from './remote-check-runner.js';
+import { buildSuggestFixOutput } from './suggest-fix.js';
 import type { RemoteMcpDeps } from './remote-types.js';
 import { createRemoteMcpServer } from './create-remote-server.js';
 
@@ -34,6 +36,28 @@ describe('remote-check-runner', () => {
     });
     expect(agent.schemaVersion).toBe('1');
     expect(agent.contract).toBe('config');
+  });
+
+  it('runs config + migration via check_repo_contracts helper', async () => {
+    const configYaml = readFileSync(join(examplesRoot, 'prodverdict.full.yml'), 'utf8');
+    const migrationBlock = readFileSync(join(examplesRoot, 'prodverdict.migration.yml'), 'utf8');
+    const combinedYaml = `${configYaml.trimEnd()}\n${migrationBlock.replace(/^version: 1\ncontracts:\n/, '')}`;
+    const unsafeSql = readFileSync(
+      join(examplesRoot, 'migrations/unsafe/001_add_index.sql'),
+      'utf8',
+    );
+    const result = await runRemoteRepoContractsFromFiles({
+      files: {
+        'prodverdict.yml': combinedYaml,
+        '.env.example': 'DATABASE_URL=\nSTRIPE_SECRET_KEY=\n',
+        'lib/billing.ts': 'export const x = process.env.DATABASE_URL;\n',
+        'migrations/unsafe/001_add_index.sql': unsafeSql,
+      },
+    });
+    expect(result.schemaVersion).toBe('1');
+    expect(result.config.contract).toBe('config');
+    expect(result.migration.contract).toBe('migration');
+    expect(['pass', 'fail', 'warn']).toContain(result.verdict);
   });
 
   it('runs migration check from in-memory SQL', async () => {
@@ -83,5 +107,18 @@ describe('createRemoteMcpServer', () => {
       githubInstallationId: 12345,
     }));
     expect(server).toBeTruthy();
+  });
+
+  it('suggest_fix extracts unique hints', () => {
+    const out = buildSuggestFixOutput([
+      {
+        contract: 'config',
+        severity: 'medium',
+        entity: 'FOO',
+        message: 'missing',
+        fix: 'Add FOO to .env.example',
+      },
+    ]);
+    expect(out.count).toBe(1);
   });
 });

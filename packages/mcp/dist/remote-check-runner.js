@@ -60,4 +60,24 @@ export async function runRemoteMigrationCheckFromFiles(opts) {
 export function resolveConfigPath(repoRoot, configPath) {
     return join(repoRoot, configPath ?? DEFAULT_CONFIG);
 }
+export async function runRemoteRepoContractsFromFiles(opts) {
+    const config = await runRemoteConfigCheckFromFiles(opts);
+    const migration = await runRemoteMigrationCheckFromFiles({
+        files: opts.files,
+        configPath: opts.configPath,
+    });
+    const verdict = config.verdict === 'fail' || migration.verdict === 'fail'
+        ? 'fail'
+        : config.verdict === 'warn' || migration.verdict === 'warn'
+            ? 'warn'
+            : 'pass';
+    const exitCode = verdict === 'fail' ? 1 : 0;
+    return {
+        schemaVersion: '1',
+        config,
+        migration,
+        verdict,
+        exitCode,
+    };
+}
 //# sourceMappingURL=remote-check-runner.js.map

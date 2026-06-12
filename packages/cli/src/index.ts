@@ -9,7 +9,14 @@ import {
 import { resolve } from 'path';
 import { runCheck } from './run-check.js';
 import { formatTextResult } from './format/text.js';
-import { writeInitConfig, writeMcpConfig, writeCursorRule, type InitStack } from './init-config.js';
+import {
+  writeInitConfig,
+  writeMcpConfig,
+  writeRemoteMcpConfig,
+  writeCursorRule,
+  type InitStack,
+} from './init-config.js';
+import { buildRemoteMcpJson } from './mcp-config.js';
 import { runDoctorCli, formatDoctorText } from './doctor-cli.js';
 
 const program = new Command();
@@ -17,7 +24,7 @@ const program = new Command();
 program
   .name('prodverdict')
   .description('Deterministic production contract verification for AI-assisted SaaS')
-  .version('0.7.0');
+  .version('0.8.0');
 
 program
   .command('check [contract]')
@@ -95,8 +102,20 @@ program
   .option('-o, --output <path>', 'Output file', 'prodverdict.yml')
   .option('--access-only', 'Omit config contract block (access contract only)')
   .option('--mcp', 'Also write .cursor/mcp.json for local MCP checks')
+  .option('--remote-mcp', 'Also merge prodverdict-remote into .cursor/mcp.json (hosted MCP)')
+  .option('--project-id <id>', 'Project UUID for remote MCP headers')
+  .option('--api-key <key>', 'API key (pv_...) for remote MCP headers')
   .option('--cursor-rule', 'Also write .cursor/rules/prodverdict-agent.mdc')
-  .action((options: { stack: string; output: string; accessOnly?: boolean; mcp?: boolean; cursorRule?: boolean }) => {
+  .action((options: {
+    stack: string;
+    output: string;
+    accessOnly?: boolean;
+    mcp?: boolean;
+    remoteMcp?: boolean;
+    projectId?: string;
+    apiKey?: string;
+    cursorRule?: boolean;
+  }) => {
     const stacks: InitStack[] = ['nextjs-stripe', 'supabase-stripe', 'paddle-stripe', 'rails-stripe'];
     const stack = options.stack as InitStack;
     if (!stacks.includes(stack)) {
@@ -115,6 +134,13 @@ program
         const mcpPath = writeMcpConfig(process.cwd(), stack);
         process.stdout.write(`✔ Wrote ${mcpPath}\n`);
       }
+      if (options.remoteMcp) {
+        const remoteInput: { projectId?: string; apiKey?: string } = {};
+        if (options.projectId) remoteInput.projectId = options.projectId;
+        if (options.apiKey) remoteInput.apiKey = options.apiKey;
+        const remotePath = writeRemoteMcpConfig(process.cwd(), remoteInput);
+        process.stdout.write(`✔ Wrote remote MCP config to ${remotePath}\n`);
+      }
       if (options.cursorRule) {
         const rulePath = writeCursorRule(process.cwd());
         process.stdout.write(`✔ Wrote ${rulePath}\n`);
@@ -123,6 +149,23 @@ program
     } catch (err) {
       handleError(err);
     }
+  });
+
+program
+  .command('remote-mcp')
+  .description('Print Cursor remote MCP JSON (prodverdict.com/api/mcp).')
+  .option('--print', 'Print JSON to stdout')
+  .option('--project-id <id>', 'Project UUID', 'your-project-uuid')
+  .option('--api-key <key>', 'API key (pv_...)', 'pv_...')
+  .action((options: { print?: boolean; projectId: string; apiKey: string }) => {
+    const json = buildRemoteMcpJson({
+      projectId: options.projectId,
+      apiKey: options.apiKey,
+    });
+    if (options.print !== false) {
+      process.stdout.write(JSON.stringify(json, null, 2) + '\n');
+    }
+    process.exit(0);
   });
 
 program

@@ -101,3 +101,39 @@ export async function runRemoteMigrationCheckFromFiles(opts: {
 export function resolveConfigPath(repoRoot: string, configPath?: string): string {
   return join(repoRoot, configPath ?? DEFAULT_CONFIG);
 }
+
+export type RemoteRepoContractsOutput = {
+  schemaVersion: '1';
+  config: AgentCheckOutput;
+  migration: AgentCheckOutput;
+  verdict: 'pass' | 'fail' | 'warn';
+  exitCode: number;
+};
+
+export async function runRemoteRepoContractsFromFiles(opts: {
+  files: Record<string, string>;
+  configPath?: string | undefined;
+  env?: Record<string, string | undefined> | undefined;
+}): Promise<RemoteRepoContractsOutput> {
+  const config = await runRemoteConfigCheckFromFiles(opts);
+  const migration = await runRemoteMigrationCheckFromFiles({
+    files: opts.files,
+    configPath: opts.configPath,
+  });
+
+  const verdict =
+    config.verdict === 'fail' || migration.verdict === 'fail'
+      ? 'fail'
+      : config.verdict === 'warn' || migration.verdict === 'warn'
+        ? 'warn'
+        : 'pass';
+  const exitCode = verdict === 'fail' ? 1 : 0;
+
+  return {
+    schemaVersion: '1',
+    config,
+    migration,
+    verdict,
+    exitCode,
+  };
+}

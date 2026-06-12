@@ -97,7 +97,7 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-action@v0.7.0
+- uses: prodv-dev/prodverdict-action@v0.8.0
   with:
     config: ./prodverdict.yml
     contract: access   # access | config | migration
@@ -110,15 +110,20 @@ npx prodverdict validate --config prodverdict.yml
 
 **Paddle + Postgres:** use `examples/paddle-stripe/prodverdict.yml` and set `PADDLE_API_KEY` instead of Stripe.
 
-Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.7.0`
+Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.8.0`
 
 The action runs against **your repository** (not the SDK checkout), posts findings as a PR comment, and fails on high-severity access violations.
 
 Install from [GitHub Marketplace](https://github.com/marketplace/actions/prodverdict) or reference the tag directly as shown above.
 
-## Remote MCP (v0.7)
+## Remote MCP (v0.8)
 
 Hosted at [prodverdict.com/api/mcp](https://prodverdict.com/api/mcp) for config/migration checks without local billing credentials. GitHub App reads repo files only — no Stripe/DB secrets on ProdVerdict cloud.
+
+```bash
+npx prodverdict init --remote-mcp --project-id your-project-uuid
+# or: npx prodverdict remote-mcp --print --project-id ... --api-key pv_...
+```
 
 ```json
 {
@@ -134,7 +139,7 @@ Hosted at [prodverdict.com/api/mcp](https://prodverdict.com/api/mcp) for config/
 }
 ```
 
-Tools: `validate_config` (free), `check_config_contract`, `check_migration_contract`, `get_recent_runs` (Pro). Access contract stays on **local MCP** only. See [docs/mcp-design.md](../docs/mcp-design.md).
+Tools: `validate_config` (free), `check_repo_contracts` (config + migration in one call, Pro), `check_config_contract`, `check_migration_contract`, `suggest_fix`, `get_recent_runs` (Pro). Prompts and schema resources included. Access contract stays on **local MCP** only. See [docs/mcp-design.md](../docs/mcp-design.md) and [prodverdict.com/agents](https://prodverdict.com/agents).
 
 ## Agent workflow (v0.6+)
 
@@ -143,6 +148,9 @@ For Cursor, Claude Code, and other coding agents:
 ```bash
 # Scaffold config + Cursor MCP + agent rule
 npx prodverdict init --stack nextjs-stripe --mcp --cursor-rule
+
+# Remote MCP (config/migration via GitHub — copy from dashboard)
+npx prodverdict init --remote-mcp --project-id your-project-uuid
 
 # Diagnose credentials before full checks
 npx prodverdict doctor --format agent

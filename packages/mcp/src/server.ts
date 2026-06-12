@@ -17,6 +17,7 @@ import {
 } from './check-runner.js';
 import { registerPrompts } from './prompts.js';
 import { registerResources } from './resources.js';
+import { buildSuggestFixOutput } from './suggest-fix.js';
 
 const DEFAULT_CONFIG = './prodverdict.yml';
 
@@ -42,7 +43,7 @@ const fixturesDirSchema = z
 
 const server = new McpServer({
   name: 'prodverdict',
-  version: '0.7.0',
+  version: '0.8.0',
 });
 
 function toolError(err: unknown) {
@@ -210,21 +211,10 @@ server.tool(
       )
       .describe('Findings from any check_* tool output'),
   },
-  async ({ findings }) => {
-    const fixes = (findings as Finding[])
-      .map((f) => f.fix)
-      .filter((fix): fix is string => Boolean(fix));
-
-    const unique = [...new Set(fixes)];
-    return toolJson({
-      fixes: unique,
-      count: unique.length,
-      note: 'Deterministic fix hints from contract definitions. Apply them and re-run check tools.',
-    });
-  },
+  async ({ findings }) => toolJson(buildSuggestFixOutput(findings)),
 );
 
-registerPrompts(server);
+registerPrompts(server, 'local');
 registerResources(server);
 
 async function main() {

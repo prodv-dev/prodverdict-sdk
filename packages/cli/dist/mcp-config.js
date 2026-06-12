@@ -1,3 +1,6 @@
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+const DEFAULT_REMOTE_URL = 'https://prodverdict.com/api/mcp';
 export function buildMcpJson(stack) {
     const env = {
         DATABASE_URL: 'postgresql://readonly:...@host/db',
@@ -18,5 +21,46 @@ export function buildMcpJson(stack) {
             },
         },
     };
+}
+export function buildRemoteMcpJson(input = {}) {
+    const projectId = input.projectId ?? 'your-project-uuid';
+    const apiKey = input.apiKey ?? 'pv_...';
+    const url = input.url ?? DEFAULT_REMOTE_URL;
+    return {
+        mcpServers: {
+            'prodverdict-remote': {
+                url,
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    'X-Prodverdict-Project-Id': projectId,
+                },
+            },
+        },
+    };
+}
+export function mergeMcpConfigs(base, extra) {
+    const baseServers = base.mcpServers ?? {};
+    const extraServers = extra.mcpServers ?? {};
+    return {
+        mcpServers: {
+            ...baseServers,
+            ...extraServers,
+        },
+    };
+}
+export function writeMcpJsonFile(cwd, config) {
+    const dir = resolve(cwd, '.cursor');
+    mkdirSync(dir, { recursive: true });
+    const path = resolve(dir, 'mcp.json');
+    let merged = config;
+    try {
+        const existing = JSON.parse(readFileSync(path, 'utf8'));
+        merged = mergeMcpConfigs(existing, config);
+    }
+    catch {
+        // no existing file
+    }
+    writeFileSync(path, JSON.stringify(merged, null, 2) + '\n', 'utf8');
+    return path;
 }
 //# sourceMappingURL=mcp-config.js.map

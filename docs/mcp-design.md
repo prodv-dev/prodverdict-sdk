@@ -58,7 +58,7 @@ Or add to `.cursor/mcp.json`:
 }
 ```
 
-## Remote MCP (v0.7 — shipped)
+## Remote MCP (v0.8 — shipped)
 
 Hosted at `https://prodverdict.com/api/mcp` for agents that cannot run local billing connectors.
 
@@ -71,9 +71,25 @@ Hosted at `https://prodverdict.com/api/mcp` for agents that cannot run local bil
 | Tool | Requirement | Tier |
 |------|-------------|------|
 | `validate_config` | YAML upload or GitHub file read | Free |
+| `check_repo_contracts` | Config + migration in one call via GitHub App | Pro |
 | `check_migration_contract` | GitHub App reads migration SQL from repo | Pro |
 | `check_config_contract` | GitHub App reads source + `.env.example` | Pro |
+| `suggest_fix` | Findings JSON from any check tool | Free |
 | `get_recent_runs` | Dashboard API key | Pro |
+
+### Prompts and resources (v0.8)
+
+Same names as local MCP, adapted for remote workflow:
+
+- Prompts: `setup_prodverdict`, `verify_before_pr`
+- Resources: `prodverdict://schema/access`, `prodverdict://schema/config`, `prodverdict://schema/migration`, `prodverdict://examples/nextjs-stripe`
+
+### CLI setup (v0.8)
+
+```bash
+npx prodverdict init --remote-mcp --project-id your-project-uuid
+npx prodverdict remote-mcp --print --project-id ... --api-key pv_...
+```
 
 ### Architecture
 
