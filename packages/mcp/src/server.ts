@@ -7,7 +7,6 @@ import {
   runDoctor,
   toAgentDoctorOutput,
   isProdVerdictError,
-  type Finding,
 } from '@prodverdict/engine';
 import {
   runAccessCheck,
