@@ -66,12 +66,43 @@ const MigrationContractSchema = z.object({
     severity: SeveritySchema.default('high'),
     fix: z.string().optional(),
 });
+// ── Boundary Contract ──────────────────────────────────────────────────────────
+const BoundaryContractSchema = z.object({
+    type: z.literal('boundary'),
+    forbidden_write: z.array(z.string().min(1)).default(['is_admin', 'plan', 'stripe_customer_id']),
+    forbidden_response: z.array(z.string().min(1)).default(['password_hash', 'reset_token']),
+    scan_paths: z.array(z.string().min(1)).default(['src/**/*.ts', 'src/**/*.tsx', 'app/api/**']),
+    severity: SeveritySchema.default('high'),
+    fix: z.string().optional(),
+});
+// ── Webhook Contract ─────────────────────────────────────────────────────────
+const WebhookContractSchema = z.object({
+    type: z.literal('webhook'),
+    handler_paths: z.array(z.string().min(1)).default(['app/api/**/webhook/**', 'src/**/webhook/**']),
+    require_idempotency: z.boolean().default(true),
+    require_raw_body: z.boolean().default(true),
+    severity: SeveritySchema.default('high'),
+    fix: z.string().optional(),
+});
+// ── Restore Contract ───────────────────────────────────────────────────────────
+const RestoreContractSchema = z.object({
+    type: z.literal('restore'),
+    backup_command: z.string().min(1),
+    restore_command: z.string().min(1),
+    smoke_queries: z.array(z.string().min(1)).default([]),
+    command_env: z.record(z.string(), z.string()).optional(),
+    severity: SeveritySchema.default('high'),
+    fix: z.string().optional(),
+});
 // ── Union ──────────────────────────────────────────────────────────────────────
 const ContractSchema = z.union([
     AccessContractStripeSchema,
     AccessContractPaddleSchema,
     ConfigContractSchema,
     MigrationContractSchema,
+    BoundaryContractSchema,
+    WebhookContractSchema,
+    RestoreContractSchema,
 ]);
 export const ProdVerdictConfigSchema = z.object({
     version: z.literal(1),

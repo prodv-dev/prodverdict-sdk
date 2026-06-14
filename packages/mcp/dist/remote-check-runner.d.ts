@@ -2,7 +2,7 @@ import { type AgentCheckOutput } from '@prodverdict/engine';
 export declare function runRemoteValidateConfig(configYaml: string): Promise<{
     valid: boolean;
     contracts: {
-        type: "access" | "config" | "migration";
+        type: "access" | "config" | "migration" | "boundary" | "webhook" | "restore";
     }[];
 }>;
 export declare function runRemoteConfigCheck(opts: {
@@ -26,8 +26,10 @@ export declare function runRemoteMigrationCheckFromFiles(opts: {
 export declare function resolveConfigPath(repoRoot: string, configPath?: string): string;
 export type RemoteRepoContractsOutput = {
     schemaVersion: '1';
-    config: AgentCheckOutput;
-    migration: AgentCheckOutput;
+    config?: AgentCheckOutput | undefined;
+    migration?: AgentCheckOutput | undefined;
+    boundary?: AgentCheckOutput | undefined;
+    webhook?: AgentCheckOutput | undefined;
     verdict: 'pass' | 'fail' | 'warn';
     exitCode: number;
 };

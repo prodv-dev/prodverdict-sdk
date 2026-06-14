@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Finding } from '../types.js';
 import type { MigrationContractConfig } from '../config/schema.js';
+import { globToRegExp } from './repo-walk.js';
 
 export interface MigrationDataSources {
   repoRoot: string;
@@ -60,17 +61,6 @@ function stripComments(sql: string): string {
   return sql
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/--.*$/gm, ' ');
-}
-
-function globToRegExp(pattern: string): RegExp {
-  const normalized = pattern.replace(/\\/g, '/');
-  const escaped = normalized
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*\*/g, '<<GLOBSTAR>>')
-    .replace(/\*/g, '[^/]*')
-    .replace(/<<GLOBSTAR>>/g, '.*')
-    .replace(/\?/g, '[^/]');
-  return new RegExp(`^${escaped}$`, 'i');
 }
 
 function collectMigrationFiles(repoRoot: string, patterns: string[]): string[] {

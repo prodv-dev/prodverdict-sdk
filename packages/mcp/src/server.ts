@@ -12,6 +12,9 @@ import {
   runAccessCheck,
   runConfigCheck,
   runMigrationCheck,
+  runBoundaryCheck,
+  runWebhookCheck,
+  runRestoreCheck,
   runAllChecks,
 } from './check-runner.js';
 import { registerPrompts } from './prompts.js';
@@ -42,7 +45,7 @@ const fixturesDirSchema = z
 
 const server = new McpServer({
   name: 'prodverdict',
-  version: '0.8.0',
+  version: '0.9.0',
 });
 
 function toolError(err: unknown) {
@@ -86,8 +89,7 @@ server.tool(
 
 server.tool(
   'check_all_contracts',
-  'Run every contract defined in prodverdict.yml (access, config, migration). ' +
-    'Returns aggregate agent schema with summary and next steps.',
+  'Run every contract defined in prodverdict.yml. Returns aggregate agent schema with summary and next steps.',
   {
     configPath: configPathSchema,
     repoRoot: repoRootSchema,
@@ -163,6 +165,66 @@ server.tool(
   async ({ configPath, repoRoot }) => {
     try {
       const agent = await runMigrationCheck({
+        configPath: resolve(configPath ?? DEFAULT_CONFIG),
+        repoRoot,
+      });
+      return toolJson(agent);
+    } catch (err) {
+      return toolError(err);
+    }
+  },
+);
+
+server.tool(
+  'check_boundary_contract',
+  'Run the ProdVerdict boundary contract check. Scans API handlers for mass-assignment and sensitive response fields.',
+  {
+    configPath: configPathSchema,
+    repoRoot: repoRootSchema,
+  },
+  async ({ configPath, repoRoot }) => {
+    try {
+      const agent = await runBoundaryCheck({
+        configPath: resolve(configPath ?? DEFAULT_CONFIG),
+        repoRoot,
+      });
+      return toolJson(agent);
+    } catch (err) {
+      return toolError(err);
+    }
+  },
+);
+
+server.tool(
+  'check_webhook_contract',
+  'Run the ProdVerdict webhook contract check. Validates signature verification and idempotency patterns in webhook handlers.',
+  {
+    configPath: configPathSchema,
+    repoRoot: repoRootSchema,
+  },
+  async ({ configPath, repoRoot }) => {
+    try {
+      const agent = await runWebhookCheck({
+        configPath: resolve(configPath ?? DEFAULT_CONFIG),
+        repoRoot,
+      });
+      return toolJson(agent);
+    } catch (err) {
+      return toolError(err);
+    }
+  },
+);
+
+server.tool(
+  'check_restore_contract',
+  'Run the ProdVerdict restore contract check. Executes backup/restore commands and smoke SQL queries (requires pg tools in PATH).',
+  {
+    configPath: configPathSchema,
+    repoRoot: repoRootSchema,
+  },
+  async ({ configPath, repoRoot }) => {
+    try {
+      const agent = await runRestoreCheck({
         configPath: resolve(configPath ?? DEFAULT_CONFIG),
         repoRoot,
       });

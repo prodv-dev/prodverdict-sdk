@@ -65,7 +65,7 @@ export function createRemoteMcpServer(
 ): McpServer {
   const server = new McpServer({
     name: 'prodverdict-remote',
-    version: '0.8.0',
+    version: '0.9.0',
   });
 
   server.tool(
@@ -151,7 +151,7 @@ export function createRemoteMcpServer(
 
   server.tool(
     'check_repo_contracts',
-    'Run config + migration contracts in one call via GitHub App repo read. Pro tier. No billing secrets on cloud.',
+    'Run config, migration, boundary, and webhook contracts in one call via GitHub App repo read. Pro tier. No billing secrets on cloud.',
     {
       configPath: configPathSchema,
       ...repoSchema,

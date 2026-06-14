@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { resolve } from 'path';
-import { parseConfigFile, evaluateAccess, evaluateConfig, evaluateMigration, aggregateVerdict, createLiveBillingReader, createLivePostgresReader, isProdVerdictError, } from '@prodverdict/engine';
+import { parseConfigFile, runContracts, isProdVerdictError, } from '@prodverdict/engine';
 import { buildComment, extractCommentMarker } from './comment.js';
 import { maybeNotifySlack } from './slack.js';
 import { uploadCheckResult } from './upload.js';
@@ -9,118 +9,98 @@ import { uploadCheckResult } from './upload.js';
 function workspaceRoot() {
     return process.env['GITHUB_WORKSPACE'] ?? process.cwd();
 }
+const SUPPORTED_CONTRACTS = [
+    'access',
+    'config',
+    'migration',
+    'boundary',
+    'webhook',
+    'restore',
+    'all',
+];
+function contractLabel(contract) {
+    switch (contract) {
+        case 'config':
+            return 'Config';
+        case 'migration':
+            return 'Migration';
+        case 'boundary':
+            return 'Boundary';
+        case 'webhook':
+            return 'Webhook';
+        case 'restore':
+            return 'Restore';
+        default:
+            return 'Access';
+    }
+}
 async function run() {
     try {
         const configInput = core.getInput('config') || './prodverdict.yml';
         const configPath = resolve(workspaceRoot(), configInput);
         const contractInput = (core.getInput('contract') || 'access').toLowerCase();
         const strict = (core.getInput('strict') || 'false').toLowerCase() === 'true';
-        if (!['access', 'config', 'migration'].includes(contractInput)) {
-            core.setFailed(`Unknown contract "${contractInput}". Supported: access, config, migration.`);
+        if (!SUPPORTED_CONTRACTS.includes(contractInput)) {
+            core.setFailed(`Unknown contract "${contractInput}". Supported: access, config, migration, boundary, webhook, restore, all.`);
             return;
         }
         core.info(`Loading config from ${configPath}`);
         const cfg = parseConfigFile(configPath);
-        let result;
-        if (contractInput === 'migration') {
-            const migrationCfg = cfg.contracts.find((c) => c.type === 'migration');
-            if (!migrationCfg) {
-                core.setFailed('No migration contract found in prodverdict.yml.');
-                return;
+        const contractsFilter = contractInput === 'all'
+            ? undefined
+            : [contractInput];
+        if (contractInput === 'access') {
+            const accessCfg = cfg.contracts.find((c) => c.type === 'access');
+            if (accessCfg) {
+                const provider = accessCfg.source_of_truth === 'paddle' ? 'Paddle' : 'Stripe';
+                core.info(`Connecting to ${provider} and database (read-only)…`);
             }
-            core.info('Running migration contract check…');
-            const findings = await evaluateMigration(migrationCfg, {
-                repoRoot: workspaceRoot(),
-            });
-            const verdict = aggregateVerdict(findings);
-            result = {
-                contract: 'migration',
-                verdict,
-                findings,
-                evaluatedAt: new Date().toISOString(),
-            };
         }
         else if (contractInput === 'config') {
-            const configCfg = cfg.contracts.find((c) => c.type === 'config');
-            if (!configCfg) {
-                core.setFailed('No config contract found in prodverdict.yml.');
-                return;
-            }
             core.info('Running config contract check…');
-            const findings = await evaluateConfig(configCfg, {
-                repoRoot: workspaceRoot(),
-                env: process.env,
-            });
-            const verdict = aggregateVerdict(findings);
-            result = {
-                contract: 'config',
-                verdict,
-                findings,
-                evaluatedAt: new Date().toISOString(),
-            };
+        }
+        else if (contractInput === 'migration') {
+            core.info('Running migration contract check…');
         }
         else {
-            const accessCfg = cfg.contracts.find((c) => c.type === 'access');
-            if (!accessCfg) {
-                core.setFailed('No access contract found in prodverdict.yml.');
-                return;
+            core.info('Running all configured contracts…');
+        }
+        const output = await runContracts({
+            config: cfg,
+            configPath,
+            repoRoot: workspaceRoot(),
+            env: process.env,
+            contracts: contractsFilter,
+            accessSource: 'live',
+        });
+        if (contractInput === 'all') {
+            for (const result of output.results) {
+                await handleSingleResult(result, strict, true);
             }
-            const provider = accessCfg.source_of_truth === 'paddle' ? 'Paddle' : 'Stripe';
-            core.info(`Connecting to ${provider} and database (read-only)…`);
-            const sources = {
-                billing: createLiveBillingReader(accessCfg),
-                database: createLivePostgresReader(accessCfg),
-            };
-            let findings;
-            try {
-                findings = await evaluateAccess(accessCfg, sources);
+            core.info(`Aggregate verdict: ${output.verdict.toUpperCase()} — ${output.findings.length} finding(s)`);
+            core.setOutput('verdict', output.verdict);
+            core.setOutput('findings_count', String(output.findings.length));
+            core.setOutput('result_json', JSON.stringify(output));
+            if (output.verdict === 'fail') {
+                core.setFailed(`ProdVerdict FAILED — ${output.findings.filter((f) => f.severity === 'high').length} high-severity finding(s).`);
             }
-            finally {
-                await sources.database.close?.();
+            else if (output.verdict === 'warn' && strict) {
+                core.setFailed('ProdVerdict passed with warnings (--strict enabled).');
             }
-            const verdict = aggregateVerdict(findings);
-            result = {
-                contract: 'access',
-                verdict,
-                findings,
-                evaluatedAt: new Date().toISOString(),
-            };
-        }
-        core.info(`Verdict: ${result.verdict.toUpperCase()} — ${result.findings.length} finding(s)`);
-        core.setOutput('verdict', result.verdict);
-        core.setOutput('findings_count', String(result.findings.length));
-        core.setOutput('result_json', JSON.stringify(result));
-        await maybePostComment(result);
-        try {
-            await uploadCheckResult(result, 'action');
-            core.info('Uploaded check result to ProdVerdict dashboard.');
-        }
-        catch (uploadErr) {
-            if (process.env.PRODVERDICT_API_URL) {
-                core.warning(uploadErr instanceof Error ? uploadErr.message : `Upload failed: ${String(uploadErr)}`);
-            }
-        }
-        const slackWebhook = core.getInput('slack_webhook_url') || process.env['SLACK_WEBHOOK_URL'];
-        if (slackWebhook && (result.verdict === 'fail' || result.verdict === 'warn')) {
-            await maybeNotifySlack(result, slackWebhook);
-        }
-        const label = result.contract === 'config' ? 'Config' : result.contract === 'migration' ? 'Migration' : 'Access';
-        if (result.verdict === 'fail') {
-            core.setFailed(`${label} contract FAILED — ${result.findings.filter((f) => f.severity === 'high').length} high-severity finding(s). ` +
-                'See comment for details.');
-        }
-        else if (result.verdict === 'warn') {
-            const msg = `${label} contract passed with warnings — ${result.findings.length} finding(s).`;
-            if (strict) {
-                core.setFailed(`${msg} (--strict enabled)`);
+            else if (output.verdict === 'warn') {
+                core.warning(`ProdVerdict passed with warnings — ${output.findings.length} finding(s).`);
             }
             else {
-                core.warning(msg);
+                core.info('ProdVerdict PASSED — no violations found.');
             }
+            return;
         }
-        else {
-            core.info(`${label} contract PASSED — no violations found.`);
+        const result = output.results[0];
+        if (!result) {
+            core.setFailed(`No ${contractInput} contract found in prodverdict.yml.`);
+            return;
         }
+        await handleSingleResult(result, strict, false);
     }
     catch (err) {
         if (isProdVerdictError(err)) {
@@ -132,6 +112,47 @@ async function run() {
         else {
             core.setFailed(`Unexpected error: ${String(err)}`);
         }
+    }
+}
+async function handleSingleResult(result, strict, aggregateMode) {
+    core.info(`Verdict: ${result.verdict.toUpperCase()} — ${result.findings.length} finding(s)`);
+    if (!aggregateMode) {
+        core.setOutput('verdict', result.verdict);
+        core.setOutput('findings_count', String(result.findings.length));
+        core.setOutput('result_json', JSON.stringify(result));
+    }
+    await maybePostComment(result);
+    try {
+        await uploadCheckResult(result, 'action');
+        core.info('Uploaded check result to ProdVerdict dashboard.');
+    }
+    catch (uploadErr) {
+        if (process.env.PRODVERDICT_API_URL) {
+            core.warning(uploadErr instanceof Error ? uploadErr.message : `Upload failed: ${String(uploadErr)}`);
+        }
+    }
+    const slackWebhook = core.getInput('slack_webhook_url') || process.env['SLACK_WEBHOOK_URL'];
+    if (slackWebhook && (result.verdict === 'fail' || result.verdict === 'warn')) {
+        await maybeNotifySlack(result, slackWebhook);
+    }
+    if (aggregateMode)
+        return;
+    const label = contractLabel(result.contract);
+    if (result.verdict === 'fail') {
+        core.setFailed(`${label} contract FAILED — ${result.findings.filter((f) => f.severity === 'high').length} high-severity finding(s). ` +
+            'See comment for details.');
+    }
+    else if (result.verdict === 'warn') {
+        const msg = `${label} contract passed with warnings — ${result.findings.length} finding(s).`;
+        if (strict) {
+            core.setFailed(`${msg} (--strict enabled)`);
+        }
+        else {
+            core.warning(msg);
+        }
+    }
+    else {
+        core.info(`${label} contract PASSED — no violations found.`);
     }
 }
 async function maybePostComment(result) {

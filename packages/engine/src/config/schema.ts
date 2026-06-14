@@ -88,6 +88,46 @@ const MigrationContractSchema = z.object({
 
 export type MigrationContractConfig = z.infer<typeof MigrationContractSchema>;
 
+// ── Boundary Contract ──────────────────────────────────────────────────────────
+
+const BoundaryContractSchema = z.object({
+  type: z.literal('boundary'),
+  forbidden_write: z.array(z.string().min(1)).default(['is_admin', 'plan', 'stripe_customer_id']),
+  forbidden_response: z.array(z.string().min(1)).default(['password_hash', 'reset_token']),
+  scan_paths: z.array(z.string().min(1)).default(['src/**/*.ts', 'src/**/*.tsx', 'app/api/**']),
+  severity: SeveritySchema.default('high'),
+  fix: z.string().optional(),
+});
+
+export type BoundaryContractConfig = z.infer<typeof BoundaryContractSchema>;
+
+// ── Webhook Contract ─────────────────────────────────────────────────────────
+
+const WebhookContractSchema = z.object({
+  type: z.literal('webhook'),
+  handler_paths: z.array(z.string().min(1)).default(['app/api/**/webhook/**', 'src/**/webhook/**']),
+  require_idempotency: z.boolean().default(true),
+  require_raw_body: z.boolean().default(true),
+  severity: SeveritySchema.default('high'),
+  fix: z.string().optional(),
+});
+
+export type WebhookContractConfig = z.infer<typeof WebhookContractSchema>;
+
+// ── Restore Contract ───────────────────────────────────────────────────────────
+
+const RestoreContractSchema = z.object({
+  type: z.literal('restore'),
+  backup_command: z.string().min(1),
+  restore_command: z.string().min(1),
+  smoke_queries: z.array(z.string().min(1)).default([]),
+  command_env: z.record(z.string(), z.string()).optional(),
+  severity: SeveritySchema.default('high'),
+  fix: z.string().optional(),
+});
+
+export type RestoreContractConfig = z.infer<typeof RestoreContractSchema>;
+
 // ── Union ──────────────────────────────────────────────────────────────────────
 
 const ContractSchema = z.union([
@@ -95,6 +135,9 @@ const ContractSchema = z.union([
   AccessContractPaddleSchema,
   ConfigContractSchema,
   MigrationContractSchema,
+  BoundaryContractSchema,
+  WebhookContractSchema,
+  RestoreContractSchema,
 ]);
 
 export const ProdVerdictConfigSchema = z.object({

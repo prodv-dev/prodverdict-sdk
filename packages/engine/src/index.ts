@@ -11,7 +11,15 @@ export { evaluateConfig, scanEnvReferences, parseEnvFile } from './evaluators/co
 export type { ConfigDataSources } from './evaluators/config.js';
 export { evaluateMigration } from './evaluators/migration.js';
 export type { MigrationDataSources } from './evaluators/migration.js';
+export { evaluateBoundary } from './evaluators/boundary.js';
+export type { BoundaryDataSources } from './evaluators/boundary.js';
+export { evaluateWebhook } from './evaluators/webhook.js';
+export type { WebhookDataSources } from './evaluators/webhook.js';
+export { evaluateRestore } from './evaluators/restore.js';
+export type { RestoreDataSources, RestoreCommandResult } from './evaluators/restore.js';
 export { aggregateVerdict } from './verdict.js';
+export { runContracts, resolveCheckExitCode } from './run.js';
+export type { RunContractsOptions, RunContractsOutput, AccessSourceMode } from './run.js';
 export { runDoctor } from './doctor.js';
 export type { DoctorResult, DoctorCheck, DoctorCheckStatus, RunDoctorOptions } from './doctor.js';
 export {

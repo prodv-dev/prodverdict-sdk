@@ -17,6 +17,7 @@ const CONTRACT_LABEL: Record<CheckResult['contract'], string> = {
   config: 'Config Contract',
   migration: 'Migration Contract',
   boundary: 'Boundary Contract',
+  webhook: 'Webhook Contract',
   restore: 'Restore Contract',
 };
 

@@ -1,4 +1,4 @@
-import { type CheckResult, type Finding, type Verdict } from '@prodverdict/engine';
+import { type CheckResult, type Verdict, type Finding } from '@prodverdict/engine';
 export interface RunCheckOptions {
     config: string;
     contract?: string | undefined;

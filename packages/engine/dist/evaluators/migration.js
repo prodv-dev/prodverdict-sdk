@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { globToRegExp } from './repo-walk.js';
 const RULES = [
     {
         id: 'create_index_non_concurrent',
@@ -43,16 +44,6 @@ function stripComments(sql) {
     return sql
         .replace(/\/\*[\s\S]*?\*\//g, ' ')
         .replace(/--.*$/gm, ' ');
-}
-function globToRegExp(pattern) {
-    const normalized = pattern.replace(/\\/g, '/');
-    const escaped = normalized
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*\*/g, '<<GLOBSTAR>>')
-        .replace(/\*/g, '[^/]*')
-        .replace(/<<GLOBSTAR>>/g, '.*')
-        .replace(/\?/g, '[^/]');
-    return new RegExp(`^${escaped}$`, 'i');
 }
 function collectMigrationFiles(repoRoot, patterns) {
     const regexes = patterns.map(globToRegExp);

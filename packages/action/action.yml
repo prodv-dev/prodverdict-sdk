@@ -11,7 +11,7 @@ inputs:
     required: false
     default: ./prodverdict.yml
   contract:
-    description: Contract to run — access, config, or migration
+    description: Contract to run — access, config, migration, boundary, webhook, restore, or all
     required: false
     default: access
   strict:

@@ -8,5 +8,8 @@ export interface RunContractOptions {
 export declare function runAccessCheck(opts: RunContractOptions): Promise<AgentCheckOutput>;
 export declare function runConfigCheck(opts: RunContractOptions): Promise<AgentCheckOutput>;
 export declare function runMigrationCheck(opts: RunContractOptions): Promise<AgentCheckOutput>;
+export declare function runBoundaryCheck(opts: RunContractOptions): Promise<AgentCheckOutput>;
+export declare function runWebhookCheck(opts: RunContractOptions): Promise<AgentCheckOutput>;
+export declare function runRestoreCheck(opts: RunContractOptions): Promise<AgentCheckOutput>;
 export declare function runAllChecks(opts: RunContractOptions): Promise<AgentAggregateOutput>;
 //# sourceMappingURL=check-runner.d.ts.map

@@ -1,0 +1,1 @@
+{"version":3,"file":"boundary.d.ts","sourceRoot":"","sources":["../../src/evaluators/boundary.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,OAAO,EAAE,MAAM,aAAa,CAAC;AAC3C,OAAO,KAAK,EAAE,sBAAsB,EAAE,MAAM,qBAAqB,CAAC;AAGlE,MAAM,WAAW,mBAAmB;IAClC,QAAQ,EAAE,MAAM,CAAC;CAClB;AAuBD,wBAAsB,gBAAgB,CACpC,GAAG,EAAE,sBAAsB,EAC3B,OAAO,EAAE,mBAAmB,GAC3B,OAAO,CAAC,OAAO,EAAE,CAAC,CAsDpB"}

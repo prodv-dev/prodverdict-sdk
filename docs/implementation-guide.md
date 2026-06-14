@@ -8,14 +8,16 @@ Technical guide for building ProdVerdict. Read with `AGENTS.md` and `design.md`.
 prodverdict/
 ├── core/
 │   ├── packages/
-│   │   ├── engine/
+│   │   ├── engine/      # runContracts(), evaluators, connectors
 │   │   ├── cli/
 │   │   ├── action/
 │   │   └── mcp/
 │   ├── fixtures/
 │   ├── examples/
 │   └── package.json
-├── docs/
+├── site/                # dashboard + remote MCP API
+├── docs-site/           # user docs (Docusaurus)
+├── docs/                # phase specs
 ├── AGENTS.md
 └── README.md
 ```
@@ -25,146 +27,103 @@ prodverdict/
 ```typescript
 type Severity = 'high' | 'medium' | 'low';
 type Verdict = 'pass' | 'warn' | 'fail';
+type ContractType = 'access' | 'config' | 'migration' | 'boundary' | 'webhook' | 'restore';
 
 interface Finding {
-  contract: string;       // e.g. "access"
+  contract: ContractType;
   severity: Severity;
-  entity: string;         // e.g. "user:usr_abc" or "price:price_xyz"
-  message: string;      // human-readable
-  fix?: string;           // agent-readable remediation
+  entity: string;
+  message: string;
+  fix?: string;
 }
 
 interface CheckResult {
-  contract: string;
+  contract: ContractType;
   verdict: Verdict;
   findings: Finding[];
-  evaluatedAt: string;    // ISO timestamp
-}
-
-interface ProdVerdictConfig {
-  version: 1;
-  contracts: ContractDefinition[];
-}
-
-interface ContractDefinition {
-  type: 'access' | 'config' | 'migration' | 'boundary' | 'restore';
-  source_of_truth?: string;
-  rules: Record<string, unknown>[];
-  severity?: Severity;
-  fix?: string;
+  evaluatedAt: string;
 }
 ```
 
-Verdict logic:
+Verdict logic (`aggregateVerdict`):
 
 - Any `high` finding → `fail`
-- Only `medium`/`low` → `warn` (configurable later; default warn)
+- Only `medium`/`low` → `warn`
 - No findings → `pass`
 
-## Example `prodverdict.yml` (Phase 1)
+## Contract schemas
 
-```yaml
-version: 1
-contracts:
-  - type: access
-    source_of_truth: stripe
-    rules:
-      - match: subscription_active
-        app_field: has_paid_access
-        expected: true
-      - match: subscription_canceled_or_unpaid
-        app_field: has_paid_access
-        expected: false
-    severity: high
-    fix: "Sync has_paid_access from Stripe webhooks or run reconciliation job."
+Each contract type has a **contract-specific** Zod schema in `core/packages/engine/src/config/schema.ts`. There is no generic `rules:` DSL in the engine — see phase design docs:
+
+| Contract | Spec |
+|----------|------|
+| access | [phase-1-design.md](phase-1-design.md) |
+| config | [phase-2-design.md](phase-2-design.md) |
+| migration | [phase-3-design.md](phase-3-design.md) |
+| boundary | [phase-4-design.md](phase-4-design.md) |
+| webhook | [phase-5a-webhook-design.md](phase-5a-webhook-design.md) |
+| restore | [phase-5b-restore-design.md](phase-5b-restore-design.md) |
+
+## Unified dispatcher
+
+All surfaces call `runContracts()`:
+
+```typescript
+import { runContracts, resolveCheckExitCode } from '@prodverdict/engine';
+
+const output = await runContracts({
+  config: parsed,
+  configPath,
+  repoRoot,
+  env: process.env,
+  contracts: ['access'], // omit for all declared contracts
+  accessSource: 'live', // | 'fixtures' | 'fixtures-stripe'
+});
 ```
 
-## Access Contract evaluator
-
-**Inputs (read-only, in-process):**
-
-1. Parsed `prodverdict.yml` access contract
-2. Stripe subscriptions/customers (REST, restricted key)
-3. App users table (SQL read-only): at minimum `id`, `stripe_customer_id`, `has_paid_access`, `plan`
-
-**Checks:**
-
-| Condition | Finding |
-|-----------|---------|
-| Stripe `active`/`trialing` + `has_paid_access=false` | High: revenue leak risk |
-| Stripe `canceled`/`unpaid` + `has_paid_access=true` | High: wrongful access |
-| Same `stripe_customer_id` on multiple users | Medium |
-| Price ID not in configured plan map | High |
-
-**Output:** `CheckResult` JSON + CLI table.
-
-## CLI commands (Phase 1)
+## CLI commands
 
 ```bash
-npx prodverdict check              # all configured contracts
-npx prodverdict check access       # access only
-npx prodverdict check --format json
-npx prodverdict validate           # parse prodverdict.yml only
+npx prodverdict check                    # access (default)
+npx prodverdict check all
+npx prodverdict check config|migration|boundary|webhook|restore
+npx prodverdict check --format json|agent
+npx prodverdict doctor
+npx prodverdict validate
 ```
 
-Exit codes: `0` pass, `1` fail, `2` config/usage error.
+Exit codes: `0` pass, `1` fail (or warn with `--strict`), `2` config/usage error.
 
-## GitHub Action (Phase 1)
+## GitHub Action
 
-- Trigger: `pull_request`, optional `schedule`
-- Inputs: path to config (default `./prodverdict.yml`), contracts filter
-- Secrets: `STRIPE_SECRET_KEY` (restricted), `DATABASE_URL` (read-only role)
-- Posts PR comment with findings table; sets check conclusion failed on high severity
-- Does not upload raw Stripe/DB data — only findings JSON as artifact optional
+- Inputs: `config`, `contract` (access|config|migration|boundary|webhook|restore|all), `strict`
+- Secrets: `STRIPE_SECRET_KEY` / `PADDLE_API_KEY`, `DATABASE_URL` (read-only)
+- Posts PR comment; fails on high severity
 
-## MCP tools (after CLI stable)
+## MCP tools
 
-| Tool | Behavior |
-|------|----------|
-| `check_access_contract` | Run access check, return JSON findings |
-| `validate_config` | Parse prodverdict.yml |
-| `suggest_fix` | Return `fix` strings from findings (no LLM) |
+Local: `doctor`, `check_all_contracts`, `check_*_contract`, `validate_config`, `suggest_fix`
 
-MCP must not write code or merge PRs.
+Remote (config/migration/boundary/webhook via GitHub App): see [mcp-design.md](mcp-design.md)
 
 ## Testing strategy
 
-1. **Unit:** rule evaluation against frozen Stripe + DB fixtures
-2. **Integration:** CLI against `fixtures/` with mock HTTP/SQL adapters
+1. **Unit:** evaluators with fixtures and temp dirs
+2. **Integration:** CLI `--fixtures`, Docker test-env
 3. **No live Stripe/DB in CI** — inject connector interfaces
 
-```typescript
-interface AccessDataSources {
-  stripe: StripeReader;
-  database: DatabaseReader;
-}
-```
+## Definition of done (new contract)
 
-## Phase 1 definition of done
-
-- [ ] Parser validates `prodverdict.yml` with clear errors
-- [ ] Access evaluator produces deterministic findings from fixtures
-- [ ] CLI text + JSON output documented
-- [ ] GitHub Action fails PR on high-severity mismatch
-- [ ] Example repo runs end-to-end locally with test credentials documented
-- [ ] No secrets or PII in logs
-
-## Later phases (do not implement unless asked)
-
-| Phase | Contract | Trigger |
-|-------|----------|---------|
-| 2 | Config | env var scan vs `.env.example` / provider |
-| 3 | Migration | SQL/Prisma/Drizzle static analysis |
-| 4 | Boundary | OpenAPI/code + forbidden field probes |
-| 5 | Webhook, Restore | operational contracts |
+- [ ] Zod schema in `schema.ts`
+- [ ] Evaluator + tests
+- [ ] `runContracts()` dispatch case
+- [ ] CLI, Action, local MCP wired
+- [ ] Phase design doc in `docs/`
+- [ ] Remote MCP if repo-only (no secrets)
 
 ## Default stack assumptions
 
-Use these when the user has not specified otherwise:
-
 - Postgres app database
-- Stripe Billing subscriptions
+- Stripe or Paddle billing
 - GitHub Actions for CI
 - TypeScript + npm workspaces
-
-Document any deviation in code comments or a short ADR in the PR description.

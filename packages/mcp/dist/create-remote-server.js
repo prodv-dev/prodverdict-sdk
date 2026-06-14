@@ -48,7 +48,7 @@ function requireGitHub(auth) {
 export function createRemoteMcpServer(deps, getAuth) {
     const server = new McpServer({
         name: 'prodverdict-remote',
-        version: '0.8.0',
+        version: '0.9.0',
     });
     server.tool('validate_config', 'Parse and validate prodverdict.yml without running checks. Free tier — YAML upload or GitHub file read.', {
         configYaml: configYamlSchema,
@@ -113,7 +113,7 @@ export function createRemoteMcpServer(deps, getAuth) {
             return toolError(err);
         }
     });
-    server.tool('check_repo_contracts', 'Run config + migration contracts in one call via GitHub App repo read. Pro tier. No billing secrets on cloud.', {
+    server.tool('check_repo_contracts', 'Run config, migration, boundary, and webhook contracts in one call via GitHub App repo read. Pro tier. No billing secrets on cloud.', {
         configPath: configPathSchema,
         ...repoSchema,
     }, async ({ configPath, owner, repo, ref }) => {

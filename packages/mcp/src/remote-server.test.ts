@@ -55,9 +55,22 @@ describe('remote-check-runner', () => {
       },
     });
     expect(result.schemaVersion).toBe('1');
-    expect(result.config.contract).toBe('config');
-    expect(result.migration.contract).toBe('migration');
+    expect(result.config?.contract).toBe('config');
+    expect(result.migration?.contract).toBe('migration');
     expect(['pass', 'fail', 'warn']).toContain(result.verdict);
+  });
+
+  it('runs config-only repo contracts without requiring migration', async () => {
+    const configYaml = readFileSync(join(examplesRoot, 'prodverdict.full.yml'), 'utf8');
+    const result = await runRemoteRepoContractsFromFiles({
+      files: {
+        'prodverdict.yml': configYaml,
+        '.env.example': 'DATABASE_URL=\nSTRIPE_SECRET_KEY=\n',
+        'lib/billing.ts': 'export const x = process.env.DATABASE_URL;\n',
+      },
+    });
+    expect(result.config?.contract).toBe('config');
+    expect(result.migration).toBeUndefined();
   });
 
   it('runs migration check from in-memory SQL', async () => {

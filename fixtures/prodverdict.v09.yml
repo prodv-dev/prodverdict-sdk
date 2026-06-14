@@ -1,0 +1,27 @@
+version: 1
+contracts:
+  - type: access
+    source_of_truth: stripe
+    stripe:
+      secret_env: STRIPE_SECRET_KEY
+    database:
+      url_env: DATABASE_URL
+    plans:
+      price_pro: pro
+  - type: config
+    scan_references: false
+    rules: []
+  - type: migration
+    paths: [migrations/**/*.sql]
+  - type: boundary
+    forbidden_write: [is_admin]
+    forbidden_response: [password_hash]
+    scan_paths: [src/**/*.ts]
+  - type: webhook
+    handler_paths: [src/webhook/**]
+    require_idempotency: true
+    require_raw_body: false
+  - type: restore
+    backup_command: echo backup-ok
+    restore_command: echo restore-ok
+    smoke_queries: []

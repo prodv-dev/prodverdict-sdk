@@ -10,10 +10,10 @@ const program = new Command();
 program
     .name('prodverdict')
     .description('Deterministic production contract verification for AI-assisted SaaS')
-    .version('0.8.0');
+    .version('0.9.0');
 program
     .command('check [contract]')
-    .description('Run contract checks: access (default), config, migration, or all. Use --format json|agent for machine-readable output.')
+    .description('Run contract checks: access (default), config, migration, boundary, webhook, restore, or all. Use --format json|agent for machine-readable output.')
     .option('-c, --config <path>', 'Path to prodverdict.yml', './prodverdict.yml')
     .option('-f, --format <format>', 'Output format: text, json, or agent', 'text')
     .option('--fixtures', 'Use fixture JSON from fixtures/ instead of live credentials')

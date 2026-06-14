@@ -13,6 +13,7 @@ const CONTRACT_LABEL = {
     config: 'Config Contract',
     migration: 'Migration Contract',
     boundary: 'Boundary Contract',
+    webhook: 'Webhook Contract',
     restore: 'Restore Contract',
 };
 const MARKER = '<!-- prodverdict-comment -->';

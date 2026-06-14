@@ -308,6 +308,78 @@ declare const MigrationContractSchema: z.ZodObject<{
     fix?: string | undefined;
 }>;
 export type MigrationContractConfig = z.infer<typeof MigrationContractSchema>;
+declare const BoundaryContractSchema: z.ZodObject<{
+    type: z.ZodLiteral<"boundary">;
+    forbidden_write: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    forbidden_response: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    scan_paths: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+    fix: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    type: "boundary";
+    severity: "high" | "medium" | "low";
+    forbidden_write: string[];
+    forbidden_response: string[];
+    scan_paths: string[];
+    fix?: string | undefined;
+}, {
+    type: "boundary";
+    severity?: "high" | "medium" | "low" | undefined;
+    fix?: string | undefined;
+    forbidden_write?: string[] | undefined;
+    forbidden_response?: string[] | undefined;
+    scan_paths?: string[] | undefined;
+}>;
+export type BoundaryContractConfig = z.infer<typeof BoundaryContractSchema>;
+declare const WebhookContractSchema: z.ZodObject<{
+    type: z.ZodLiteral<"webhook">;
+    handler_paths: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    require_idempotency: z.ZodDefault<z.ZodBoolean>;
+    require_raw_body: z.ZodDefault<z.ZodBoolean>;
+    severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+    fix: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    type: "webhook";
+    severity: "high" | "medium" | "low";
+    handler_paths: string[];
+    require_idempotency: boolean;
+    require_raw_body: boolean;
+    fix?: string | undefined;
+}, {
+    type: "webhook";
+    severity?: "high" | "medium" | "low" | undefined;
+    fix?: string | undefined;
+    handler_paths?: string[] | undefined;
+    require_idempotency?: boolean | undefined;
+    require_raw_body?: boolean | undefined;
+}>;
+export type WebhookContractConfig = z.infer<typeof WebhookContractSchema>;
+declare const RestoreContractSchema: z.ZodObject<{
+    type: z.ZodLiteral<"restore">;
+    backup_command: z.ZodString;
+    restore_command: z.ZodString;
+    smoke_queries: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    command_env: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+    fix: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    type: "restore";
+    severity: "high" | "medium" | "low";
+    backup_command: string;
+    restore_command: string;
+    smoke_queries: string[];
+    fix?: string | undefined;
+    command_env?: Record<string, string> | undefined;
+}, {
+    type: "restore";
+    backup_command: string;
+    restore_command: string;
+    severity?: "high" | "medium" | "low" | undefined;
+    fix?: string | undefined;
+    smoke_queries?: string[] | undefined;
+    command_env?: Record<string, string> | undefined;
+}>;
+export type RestoreContractConfig = z.infer<typeof RestoreContractSchema>;
 export declare const ProdVerdictConfigSchema: z.ZodObject<{
     version: z.ZodLiteral<1>;
     contracts: z.ZodArray<z.ZodUnion<[z.ZodObject<{
@@ -581,6 +653,72 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         paths: string[];
         severity?: "high" | "medium" | "low" | undefined;
         fix?: string | undefined;
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"boundary">;
+        forbidden_write: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+        forbidden_response: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+        scan_paths: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+        severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+        fix: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        type: "boundary";
+        severity: "high" | "medium" | "low";
+        forbidden_write: string[];
+        forbidden_response: string[];
+        scan_paths: string[];
+        fix?: string | undefined;
+    }, {
+        type: "boundary";
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+        forbidden_write?: string[] | undefined;
+        forbidden_response?: string[] | undefined;
+        scan_paths?: string[] | undefined;
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"webhook">;
+        handler_paths: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+        require_idempotency: z.ZodDefault<z.ZodBoolean>;
+        require_raw_body: z.ZodDefault<z.ZodBoolean>;
+        severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+        fix: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        type: "webhook";
+        severity: "high" | "medium" | "low";
+        handler_paths: string[];
+        require_idempotency: boolean;
+        require_raw_body: boolean;
+        fix?: string | undefined;
+    }, {
+        type: "webhook";
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+        handler_paths?: string[] | undefined;
+        require_idempotency?: boolean | undefined;
+        require_raw_body?: boolean | undefined;
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"restore">;
+        backup_command: z.ZodString;
+        restore_command: z.ZodString;
+        smoke_queries: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+        command_env: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+        fix: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        type: "restore";
+        severity: "high" | "medium" | "low";
+        backup_command: string;
+        restore_command: string;
+        smoke_queries: string[];
+        fix?: string | undefined;
+        command_env?: Record<string, string> | undefined;
+    }, {
+        type: "restore";
+        backup_command: string;
+        restore_command: string;
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+        smoke_queries?: string[] | undefined;
+        command_env?: Record<string, string> | undefined;
     }>]>, "many">;
 }, "strip", z.ZodTypeAny, {
     contracts: ({
@@ -644,6 +782,28 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         severity: "high" | "medium" | "low";
         paths: string[];
         fix?: string | undefined;
+    } | {
+        type: "boundary";
+        severity: "high" | "medium" | "low";
+        forbidden_write: string[];
+        forbidden_response: string[];
+        scan_paths: string[];
+        fix?: string | undefined;
+    } | {
+        type: "webhook";
+        severity: "high" | "medium" | "low";
+        handler_paths: string[];
+        require_idempotency: boolean;
+        require_raw_body: boolean;
+        fix?: string | undefined;
+    } | {
+        type: "restore";
+        severity: "high" | "medium" | "low";
+        backup_command: string;
+        restore_command: string;
+        smoke_queries: string[];
+        fix?: string | undefined;
+        command_env?: Record<string, string> | undefined;
     })[];
     version: 1;
 }, {
@@ -708,6 +868,28 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         paths: string[];
         severity?: "high" | "medium" | "low" | undefined;
         fix?: string | undefined;
+    } | {
+        type: "boundary";
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+        forbidden_write?: string[] | undefined;
+        forbidden_response?: string[] | undefined;
+        scan_paths?: string[] | undefined;
+    } | {
+        type: "webhook";
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+        handler_paths?: string[] | undefined;
+        require_idempotency?: boolean | undefined;
+        require_raw_body?: boolean | undefined;
+    } | {
+        type: "restore";
+        backup_command: string;
+        restore_command: string;
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+        smoke_queries?: string[] | undefined;
+        command_env?: Record<string, string> | undefined;
     })[];
     version: 1;
 }>;

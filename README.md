@@ -97,10 +97,10 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-action@v0.8.0
+- uses: prodv-dev/prodverdict-action@v0.9.0
   with:
     config: ./prodverdict.yml
-    contract: access   # access | config | migration
+    contract: access   # access | config | migration | boundary | webhook | restore | all
     strict: false
   env:
     STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_KEY }}
@@ -110,7 +110,7 @@ npx prodverdict validate --config prodverdict.yml
 
 **Paddle + Postgres:** use `examples/paddle-stripe/prodverdict.yml` and set `PADDLE_API_KEY` instead of Stripe.
 
-Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.8.0`
+Monorepo path (also works): `prodv-dev/prodverdict-sdk/packages/action@v0.9.0`
 
 The action runs against **your repository** (not the SDK checkout), posts findings as a PR comment, and fails on high-severity access violations.
 
@@ -139,7 +139,7 @@ npx prodverdict init --remote-mcp --project-id your-project-uuid
 }
 ```
 
-Tools: `validate_config` (free), `check_repo_contracts` (config + migration in one call, Pro), `check_config_contract`, `check_migration_contract`, `suggest_fix`, `get_recent_runs` (Pro). Prompts and schema resources included. Access contract stays on **local MCP** only. See [docs/mcp-design.md](../docs/mcp-design.md) and [prodverdict.com/agents](https://prodverdict.com/agents).
+Tools: `check_repo_contracts` (config + migration + boundary + webhook when configured, Pro), `check_config_contract`, `check_migration_contract`, `suggest_fix`, `get_recent_runs` (Pro). Prompts and schema resources included. Access contract stays on **local MCP** only. See [docs/mcp-design.md](../docs/mcp-design.md) and [prodverdict.com/agents](https://prodverdict.com/agents).
 
 ## Agent workflow (v0.6+)
 
@@ -178,7 +178,7 @@ Agent output includes `summary`, `nextSteps`, and `exitCode` — same shape from
 }
 ```
 
-Tools: `doctor`, `check_all_contracts`, `check_access_contract`, `check_config_contract`, `check_migration_contract`, `validate_config`, `suggest_fix`.
+Tools: `doctor`, `check_all_contracts`, `check_access_contract`, `check_config_contract`, `check_migration_contract`, `check_boundary_contract`, `check_webhook_contract`, `check_restore_contract`, `validate_config`, `suggest_fix`.
 
 Prompts: `setup_prodverdict`, `verify_before_pr`. See [docs/mcp-design.md](../docs/mcp-design.md).
 
@@ -218,6 +218,24 @@ Each includes fixture scenarios (`pass` / `fail-revenue-leak`) runnable without 
 | `examples/rails-stripe` | Rails + Stripe (`users` table) |
 | `test-env/` | Docker Postgres + pass/fail scenario seeds |
 | `fixtures/` | Minimal fixture data for unit-style runs |
+
+## v0.9 — unified engine + full contract suite
+
+- `runContracts()` — single dispatcher in `@prodverdict/engine` (CLI, Action, MCP)
+- **Boundary contract** — mass-assignment / sensitive field static scan
+- **Webhook contract** — signature verification + idempotency lint
+- **Restore contract** — backup/restore smoke commands in CI
+- Action: `contract: all` and new contract types
+- Dashboard: policy templates API, audit log
+
+```bash
+npx prodverdict check boundary
+npx prodverdict check webhook
+npx prodverdict check restore
+npx prodverdict check all --format agent
+```
+
+See [docs/phase-4-design.md](../docs/phase-4-design.md), [phase-5a-webhook-design.md](../docs/phase-5a-webhook-design.md), [phase-5b-restore-design.md](../docs/phase-5b-restore-design.md).
 
 ## v0.2 — dashboard upload & init
 
