@@ -32,6 +32,14 @@ export function formatDoctorText(result) {
         lines.push(`  ${badge} ${chalk.bold(c.name)}`);
         lines.push(`    ${c.message}`);
     }
+    const failed = result.checks.filter((c) => c.status === 'fail');
+    if (failed.length > 0) {
+        lines.push('');
+        lines.push(chalk.bold('Next steps:'));
+        for (const c of failed) {
+            lines.push(`  • ${c.name}: ${c.message}`);
+        }
+    }
     if (result.contracts.length > 0) {
         lines.push('');
         lines.push(chalk.dim(`Contracts: ${result.contracts.map((c) => c.type).join(', ')}`));

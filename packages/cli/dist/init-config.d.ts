@@ -1,5 +1,6 @@
 import { type RemoteMcpConfigInput } from './mcp-config.js';
-export type InitStack = 'nextjs-stripe' | 'supabase-stripe' | 'paddle-stripe' | 'rails-stripe';
+import { type StackTemplate } from './stacks.js';
+export type InitStack = StackTemplate;
 export declare function writeInitConfig(cwd: string, stack: InitStack, outFile?: string, options?: {
     includeConfig?: boolean;
 }): string;

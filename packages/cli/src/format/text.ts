@@ -20,6 +20,20 @@ function formatFindings(findings: Finding[]): string[] {
     lines.push(chalk.green('✔ No violations found.'));
     return lines;
   }
+
+  const high = findings.filter((f) => f.severity === 'high').length;
+  const medium = findings.filter((f) => f.severity === 'medium').length;
+  const low = findings.filter((f) => f.severity === 'low').length;
+  const parts = [
+    high > 0 ? chalk.red(`${high} high`) : null,
+    medium > 0 ? chalk.yellow(`${medium} medium`) : null,
+    low > 0 ? chalk.cyan(`${low} low`) : null,
+  ].filter(Boolean);
+  if (parts.length > 0) {
+    lines.push(`Summary: ${parts.join(', ')}`);
+    lines.push('');
+  }
+
   lines.push(`${findings.length} finding(s):\n`);
   for (const f of findings) {
     const color = SEVERITY_COLOR[f.severity] ?? chalk.white;

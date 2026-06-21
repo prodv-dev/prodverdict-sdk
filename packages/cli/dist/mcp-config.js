@@ -1,11 +1,12 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { isPaddleStack } from './stacks.js';
 const DEFAULT_REMOTE_URL = 'https://prodverdict.com/api/mcp';
 export function buildMcpJson(stack) {
     const env = {
         DATABASE_URL: 'postgresql://readonly:...@host/db',
     };
-    if (stack === 'paddle-stripe') {
+    if (isPaddleStack(stack)) {
         env.PADDLE_API_KEY = 'your-read-only-paddle-key';
         env.PADDLE_ENVIRONMENT = 'sandbox';
     }

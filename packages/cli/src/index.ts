@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import chalk from 'chalk';
 import {
   parseConfigFile,
   isProdVerdictError,
@@ -14,17 +15,26 @@ import {
   writeMcpConfig,
   writeRemoteMcpConfig,
   writeCursorRule,
-  type InitStack,
 } from './init-config.js';
 import { buildRemoteMcpJson } from './mcp-config.js';
 import { runDoctorCli, formatDoctorText } from './doctor-cli.js';
+import {
+  STACK_ORDER,
+  formatStackListTable,
+  initNextSteps,
+  isStackTemplate,
+} from './stacks.js';
+
+if (process.env.NO_COLOR !== undefined) {
+  chalk.level = 0;
+}
 
 const program = new Command();
 
 program
   .name('prodverdict')
   .description('Deterministic production contract verification for AI-assisted SaaS')
-  .version('0.9.0');
+  .version('0.9.1');
 
 program
   .command('check [contract]')
@@ -62,7 +72,7 @@ program
       writeCheckOutput(result, format, exitCode, options.strict ?? false);
       process.exit(exitCode);
     } catch (err) {
-      handleError(err);
+      handleError(err, options.config);
     }
   });
 
@@ -91,15 +101,16 @@ program
 
       process.exit(exitCode);
     } catch (err) {
-      handleError(err);
+      handleError(err, options.config);
     }
   });
 
 program
   .command('init')
   .description('Create prodverdict.yml from a stack template.')
-  .option('-s, --stack <stack>', 'Template: nextjs-stripe, supabase-stripe, paddle-stripe, rails-stripe', 'nextjs-stripe')
+  .option('-s, --stack <stack>', `Template (${STACK_ORDER.join(', ')})`, 'nextjs-stripe')
   .option('-o, --output <path>', 'Output file', 'prodverdict.yml')
+  .option('--list-stacks', 'Print available stack templates and exit')
   .option('--access-only', 'Omit config contract block (access contract only)')
   .option('--mcp', 'Also write .cursor/mcp.json for local MCP checks')
   .option('--remote-mcp', 'Also merge prodverdict-remote into .cursor/mcp.json (hosted MCP)')
@@ -109,6 +120,7 @@ program
   .action((options: {
     stack: string;
     output: string;
+    listStacks?: boolean;
     accessOnly?: boolean;
     mcp?: boolean;
     remoteMcp?: boolean;
@@ -116,15 +128,23 @@ program
     apiKey?: string;
     cursorRule?: boolean;
   }) => {
-    const stacks: InitStack[] = ['nextjs-stripe', 'supabase-stripe', 'paddle-stripe', 'rails-stripe'];
-    const stack = options.stack as InitStack;
-    if (!stacks.includes(stack)) {
+    if (options.listStacks) {
+      process.stdout.write(`${formatStackListTable()}\n`);
+      process.exit(0);
+    }
+
+    if (!isStackTemplate(options.stack)) {
       handleError(
-        Object.assign(new Error(`Unknown stack "${options.stack}". Use: ${stacks.join(', ')}`), {
-          code: 'CONFIG_INVALID' as const,
-        }),
+        Object.assign(
+          new Error(`Unknown stack "${options.stack}". Run: prodverdict init --list-stacks`),
+          { code: 'CONFIG_INVALID' as const },
+        ),
+        options.output,
       );
     }
+
+    const stack = options.stack;
+
     try {
       const path = writeInitConfig(process.cwd(), stack, options.output, {
         includeConfig: !options.accessOnly,
@@ -145,9 +165,16 @@ program
         const rulePath = writeCursorRule(process.cwd());
         process.stdout.write(`✔ Wrote ${rulePath}\n`);
       }
+
+      process.stdout.write('\nNext:\n');
+      for (const line of initNextSteps(stack, options.output)) {
+        process.stdout.write(`  ${line}\n`);
+      }
+      process.stdout.write('\n');
+
       process.exit(0);
     } catch (err) {
-      handleError(err);
+      handleError(err, options.output);
     }
   });
 
@@ -199,7 +226,7 @@ program
         );
         process.exit(2);
       }
-      handleError(err);
+      handleError(err, options.config);
     }
   });
 
@@ -240,9 +267,12 @@ function writeCheckOutput(
   process.stdout.write(formatTextResult(result) + '\n');
 }
 
-function handleError(err: unknown): never {
+function handleError(err: unknown, configPath = './prodverdict.yml'): never {
   if (isProdVerdictError(err)) {
     process.stderr.write(`Error [${err.code}]: ${err.message}\n`);
+    if (err.code === 'CONFIG_INVALID' || err.code === 'CONNECTOR_ERROR') {
+      process.stderr.write(`Run: npx prodverdict doctor --config ${configPath}\n`);
+    }
     process.exit(2);
   }
   if (err instanceof Error) {

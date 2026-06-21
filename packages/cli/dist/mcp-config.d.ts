@@ -1,4 +1,5 @@
-import type { InitStack } from './init-config.js';
+import type { StackTemplate } from './stacks.js';
+export type InitStack = StackTemplate;
 export type RemoteMcpConfigInput = {
     projectId?: string;
     apiKey?: string;

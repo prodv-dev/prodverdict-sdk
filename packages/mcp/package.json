@@ -1,6 +1,6 @@
 {
   "name": "@prodverdict/mcp",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "MCP server for ProdVerdict — AI agent integration for production contract checks",
   "license": "MIT",
   "type": "module",

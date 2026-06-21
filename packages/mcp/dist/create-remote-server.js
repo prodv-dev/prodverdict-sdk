@@ -37,7 +37,7 @@ function requirePro(auth) {
         throw new Error('Missing Authorization: Bearer pv_... and X-Prodverdict-Project-Id header.');
     }
     if (!auth.isPro) {
-        throw new Error('Pro subscription required for this tool.');
+        throw new Error('ProdVerdict Cloud (Pro subscription) required for this tool.');
     }
 }
 function requireGitHub(auth) {
@@ -77,7 +77,7 @@ export function createRemoteMcpServer(deps, getAuth) {
             return toolError(err);
         }
     });
-    server.tool('check_config_contract', 'Run config contract using GitHub App repo read (source + .env.example). Pro tier. No billing secrets on cloud.', {
+    server.tool('check_config_contract', 'Run config contract using GitHub App repo read (source + .env.example). ProdVerdict Cloud (Pro). No billing secrets on cloud.', {
         configPath: configPathSchema,
         ...repoSchema,
     }, async ({ configPath, owner, repo, ref }) => {
@@ -97,7 +97,7 @@ export function createRemoteMcpServer(deps, getAuth) {
             return toolError(err);
         }
     });
-    server.tool('check_migration_contract', 'Run migration contract using GitHub App SQL reads. Pro tier. No billing secrets on cloud.', {
+    server.tool('check_migration_contract', 'Run migration contract using GitHub App SQL reads. ProdVerdict Cloud (Pro). No billing secrets on cloud.', {
         configPath: configPathSchema,
         ...repoSchema,
     }, async ({ configPath, owner, repo, ref }) => {
@@ -113,7 +113,7 @@ export function createRemoteMcpServer(deps, getAuth) {
             return toolError(err);
         }
     });
-    server.tool('check_repo_contracts', 'Run config, migration, boundary, and webhook contracts in one call via GitHub App repo read. Pro tier. No billing secrets on cloud.', {
+    server.tool('check_repo_contracts', 'Run config, migration, boundary, and webhook contracts in one call via GitHub App repo read. ProdVerdict Cloud (Pro). No billing secrets on cloud.', {
         configPath: configPathSchema,
         ...repoSchema,
     }, async ({ configPath, owner, repo, ref }) => {
@@ -133,7 +133,7 @@ export function createRemoteMcpServer(deps, getAuth) {
             return toolError(err);
         }
     });
-    server.tool('get_recent_runs', 'List recent contract runs uploaded to the ProdVerdict dashboard. Pro tier. Requires API key.', {
+    server.tool('get_recent_runs', 'List recent contract runs uploaded to the ProdVerdict dashboard. ProdVerdict Cloud (Pro). Requires API key.', {
         limit: z
             .number()
             .int()

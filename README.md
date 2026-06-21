@@ -200,10 +200,14 @@ Copy the example closest to your stack, then adjust `prodverdict.yml` and `plans
 |---------|-------|----------------|
 | [nextjs-stripe](examples/nextjs-stripe/) | Next.js + Stripe | `users` |
 | [supabase-stripe](examples/supabase-stripe/) | Supabase + Stripe | `profiles` |
+| [supabase-paddle](examples/supabase-paddle/) | Supabase + Paddle | `profiles` |
 | [paddle-stripe](examples/paddle-stripe/) | Paddle Billing + Postgres | `users` (`paddle_customer_id`) |
 | [rails-stripe](examples/rails-stripe/) | Rails + Stripe | `users` |
+| `neon-stripe` / `clerk-stripe` | Init templates (reuse `nextjs-stripe` fixtures) | `users` |
 
-Each includes fixture scenarios (`pass` / `fail-revenue-leak`) runnable without credentials: `node examples/<name>/run-demo.mjs`.
+`npx prodverdict init --list-stacks` prints all seven templates.
+
+Each example with scenarios includes `pass` / `fail-revenue-leak` demos: `node examples/<name>/run-demo.mjs`.
 
 ## Monorepo layout
 
