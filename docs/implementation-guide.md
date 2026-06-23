@@ -84,10 +84,13 @@ const output = await runContracts({
 ## CLI commands
 
 ```bash
-npx prodverdict check                    # access (default)
+npx prodverdict demo                   # bundled revenue-leak fixture (no credentials)
+npx prodverdict scan                   # static repo analysis, contract recommendations
+npx prodverdict check                  # access (default)
 npx prodverdict check all
 npx prodverdict check config|migration|boundary|webhook|restore
 npx prodverdict check --format json|agent
+npx prodverdict init                   # auto-detects stack from package.json
 npx prodverdict doctor
 npx prodverdict validate
 ```

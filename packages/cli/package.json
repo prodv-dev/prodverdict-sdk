@@ -1,6 +1,6 @@
 {
   "name": "prodverdict",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "description": "CLI for ProdVerdict — deterministic production contract checks for AI-assisted SaaS",
   "license": "MIT",
   "type": "module",
@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "bin",
+    "demo",
     "src"
   ],
   "repository": {

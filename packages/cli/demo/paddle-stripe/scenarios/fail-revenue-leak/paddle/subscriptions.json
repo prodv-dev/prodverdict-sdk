@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sub_alice_active",
+    "customerId": "ctm_alice",
+    "status": "active",
+    "priceIds": ["pri_01NextPro"]
+  },
+  {
+    "id": "sub_bob_canceled",
+    "customerId": "ctm_bob",
+    "status": "canceled",
+    "priceIds": ["pri_01NextStarter"]
+  }
+]

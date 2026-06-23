@@ -24,6 +24,9 @@ import {
   initNextSteps,
   isStackTemplate,
 } from './stacks.js';
+import { runDemo, isDemoStack } from './demo-cli.js';
+import { resolveInitStack } from './detect-stack.js';
+import { formatScanResult, scanRepo } from './scan-repo.js';
 
 if (process.env.NO_COLOR !== undefined) {
   chalk.level = 0;
@@ -34,7 +37,39 @@ const program = new Command();
 program
   .name('prodverdict')
   .description('Deterministic production contract verification for AI-assisted SaaS')
-  .version('0.9.2');
+  .version('0.10.0');
+
+program
+  .command('demo')
+  .description('Run the revenue-leak access fixture demo — no credentials, no git clone.')
+  .option('-s, --stack <stack>', 'Demo stack: nextjs-stripe (default) or paddle-stripe')
+  .action(async (options: { stack?: string }) => {
+    const stack = options.stack ?? 'nextjs-stripe';
+    if (!isDemoStack(stack)) {
+      handleError(
+        Object.assign(
+          new Error(`Unknown demo stack "${stack}". Supported: nextjs-stripe, paddle-stripe.`),
+          { code: 'CONFIG_INVALID' as const },
+        ),
+      );
+    }
+    try {
+      const exitCode = await runDemo(stack);
+      process.exit(exitCode);
+    } catch (err) {
+      handleError(err);
+    }
+  });
+
+program
+  .command('scan')
+  .description('Scan the repo for applicable contracts — no credentials required.')
+  .option('--repo-root <path>', 'Repo root to scan (default: cwd)')
+  .action((options: { repoRoot?: string }) => {
+    const cwd = resolve(options.repoRoot ?? process.cwd());
+    process.stdout.write(formatScanResult(scanRepo(cwd)));
+    process.exit(0);
+  });
 
 program
   .command('check [contract]')
@@ -108,7 +143,7 @@ program
 program
   .command('init')
   .description('Create prodverdict.yml from a stack template.')
-  .option('-s, --stack <stack>', `Template (${STACK_ORDER.join(', ')})`, 'nextjs-stripe')
+  .option('-s, --stack <stack>', `Template (${STACK_ORDER.join(', ')}); auto-detected when omitted`)
   .option('-o, --output <path>', 'Output file', 'prodverdict.yml')
   .option('--list-stacks', 'Print available stack templates and exit')
   .option('--access-only', 'Omit config contract block (access contract only)')
@@ -117,8 +152,8 @@ program
   .option('--project-id <id>', 'Project UUID for remote MCP headers')
   .option('--api-key <key>', 'API key (pv_...) for remote MCP headers')
   .option('--cursor-rule', 'Also write .cursor/rules/prodverdict-agent.mdc')
-  .action((options: {
-    stack: string;
+  .action(async (options: {
+    stack?: string;
     output: string;
     listStacks?: boolean;
     accessOnly?: boolean;
@@ -133,17 +168,26 @@ program
       process.exit(0);
     }
 
-    if (!isStackTemplate(options.stack)) {
+    const { stack: resolvedStack, detected } = await resolveInitStack(
+      process.cwd(),
+      options.stack,
+    );
+
+    if (!isStackTemplate(resolvedStack)) {
       handleError(
         Object.assign(
-          new Error(`Unknown stack "${options.stack}". Run: prodverdict init --list-stacks`),
+          new Error(`Unknown stack "${resolvedStack}". Run: prodverdict init --list-stacks`),
           { code: 'CONFIG_INVALID' as const },
         ),
         options.output,
       );
     }
 
-    const stack = options.stack;
+    const stack = resolvedStack;
+
+    if (!options.stack && !detected) {
+      process.stdout.write('No stack detected — using nextjs-stripe. Pass --stack to override.\n');
+    }
 
     try {
       const path = writeInitConfig(process.cwd(), stack, options.output, {

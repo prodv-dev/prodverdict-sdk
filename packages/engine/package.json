@@ -1,6 +1,6 @@
 {
   "name": "@prodverdict/engine",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "description": "Core evaluation engine for ProdVerdict production contracts",
   "license": "MIT",
   "type": "module",

@@ -1,0 +1,1 @@
+{"version":3,"file":"detect-stack.d.ts","sourceRoot":"","sources":["../src/detect-stack.ts"],"names":[],"mappings":"AAIA,OAAO,EAAc,KAAK,aAAa,EAAE,MAAM,aAAa,CAAC;AAsB7D,wBAAgB,WAAW,CAAC,GAAG,EAAE,MAAM,GAAG,aAAa,GAAG,IAAI,CAwB7D;AAED,wBAAsB,gBAAgB,CACpC,GAAG,EAAE,MAAM,EACX,QAAQ,CAAC,EAAE,MAAM,GAChB,OAAO,CAAC;IAAE,KAAK,EAAE,aAAa,CAAC;IAAC,QAAQ,EAAE,OAAO,CAAA;CAAE,CAAC,CA8BtD"}

@@ -41,9 +41,10 @@ describe('stacks', () => {
     expect(table).toContain('neon-stripe');
   });
 
-  it('returns fixture next steps', () => {
+  it('returns init next steps with demo first', () => {
     const steps = initNextSteps('supabase-paddle');
-    expect(steps[0]).toContain('examples/supabase-paddle');
-    expect(steps[1]).toContain('doctor');
+    expect(steps[0]).toContain('npx prodverdict demo');
+    expect(steps[1]).toContain('supabase-paddle');
+    expect(steps[2]).toContain('doctor');
   });
 });

@@ -1,8 +1,8 @@
 # ProdVerdict
 
-**Deterministic production contract checks for AI-assisted SaaS.**
+**Your CI is green. Your billing logic might still be broken.**
 
-ProdVerdict runs **deterministic production contracts** in CI: billing vs database access (Stripe or Paddle), env var drift, and unsafe Postgres migrations — no LLM in the evaluation path.
+ProdVerdict checks if Stripe (or Paddle) and your app database agree on who paid. Deterministic rules — no LLM in the evaluation path. Missing credentials = fail, not a silent pass.
 
 **Website:** [prodverdict.com](https://prodverdict.com)
 
@@ -13,7 +13,22 @@ ProdVerdict runs **deterministic production contracts** in CI: billing vs databa
 
 ## 5-minute quickstart
 
-**No credentials required** — clone the SDK for fixture paths, then run:
+**No credentials required** — one command:
+
+```bash
+npx prodverdict demo
+```
+
+You should see a **FAIL** verdict: user has an active Stripe subscription but `has_paid_access` is false (revenue leak).
+
+Then scan your repo and init:
+
+```bash
+npx prodverdict scan
+npx prodverdict init --mcp --cursor-rule
+```
+
+### Fixture demo (from SDK clone)
 
 ```bash
 git clone --depth=1 https://github.com/prodv-dev/prodverdict-sdk.git
@@ -97,7 +112,7 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-action@v0.9.0
+- uses: prodv-dev/prodverdict-action@v0.10.0
   with:
     config: ./prodverdict.yml
     contract: access   # access | config | migration | boundary | webhook | restore | all
@@ -222,6 +237,13 @@ Each example with scenarios includes `pass` / `fail-revenue-leak` demos: `node e
 | `examples/rails-stripe` | Rails + Stripe (`users` table) |
 | `test-env/` | Docker Postgres + pass/fail scenario seeds |
 | `fixtures/` | Minimal fixture data for unit-style runs |
+
+## v0.10.0 — zero-friction discovery
+
+- `npx prodverdict demo` — revenue-leak fixture, no git clone
+- `npx prodverdict scan` — static repo analysis, contract recommendations
+- `init` auto-detects stack from `package.json`
+- Story-first docs and homepage focused on billing reconciliation
 
 ## v0.9 — unified engine + full contract suite
 

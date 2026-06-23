@@ -1,6 +1,6 @@
 ## Product Phases
 
-**Implementation status (2026-06):** Phases 1–3 shipped; **v0.9** adds Boundary, Webhook, and Restore contracts plus unified `runContracts()` dispatcher. MCP v0.6–v0.8 local/remote agent tooling shipped. Cloud: policy templates + audit log (v0.9).
+**Implementation status (2026-06):** Phases 1–3 shipped; **v0.9** adds Boundary, Webhook, and Restore contracts plus unified `runContracts()` dispatcher. **v0.10.0** adds zero-friction discovery (`demo`, `scan`, init auto-detect). MCP v0.6–v0.8 local/remote agent tooling shipped. Cloud: policy templates + audit log (v0.9).
 
 The ProdVerdict vision revolves around building a **production contract system** for AI‑assisted development.  The effort is sequenced into clear phases, each delivering a standalone contract with immediate value while laying the groundwork for a unified platform.
 
@@ -45,3 +45,12 @@ Subsequent phases will introduce additional contracts:
 * **Configuration Extensions:** integrate additional providers (Supabase, Neon, WorkOS entitlements) and support non‑SQL databases.
 
 Each phase is designed to deliver value on its own and to integrate into the unified ProdVerdict engine, with consistent interfaces (CLI, GitHub Action, MCP) and shared policies.
+
+### v0.10.0 — Zero-friction discovery (2026-06)
+
+**Goal:** reduce time-to-first-FAIL from minutes to seconds; sharpen positioning around the Access contract.
+
+* **`npx prodverdict demo`** — bundled revenue-leak fixture, no git clone or credentials.
+* **`npx prodverdict scan`** — static repo analysis; recommends contracts from package.json and source layout.
+* **`init` auto-detect** — infers stack from `package.json` when `--stack` is omitted.
+* **Docs refresh** — story-first concept doc, getting-started guide, homepage hero focused on billing reconciliation.

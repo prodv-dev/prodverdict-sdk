@@ -190,10 +190,11 @@ contracts:
 ${accessBlock(stack)}${includeConfig ? configBlock : ''}`;
 }
 export function initNextSteps(stack, configPath = 'prodverdict.yml') {
-    const example = fixtureExampleDir(stack);
     return [
-        `npx prodverdict check access --fixtures --config ${configPath} --fixtures-dir examples/${example}/scenarios/fail-revenue-leak`,
+        'npx prodverdict demo',
+        `npx prodverdict init --stack ${stack} --mcp --cursor-rule`,
         `npx prodverdict doctor --config ${configPath}`,
+        `npx prodverdict check access --config ${configPath}`,
     ];
 }
 export function formatStackListTable() {

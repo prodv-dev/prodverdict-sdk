@@ -1,0 +1,14 @@
+[
+  {
+    "id": "usr_alice",
+    "stripe_customer_id": "cus_alice",
+    "has_paid_access": false,
+    "plan": null
+  },
+  {
+    "id": "usr_bob",
+    "stripe_customer_id": "cus_bob",
+    "has_paid_access": false,
+    "plan": null
+  }
+]

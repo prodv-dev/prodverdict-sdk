@@ -48,7 +48,10 @@ function formatFindings(findings: Finding[]): string[] {
   return lines;
 }
 
-export function formatTextResult(result: CheckResult | AggregateCheckOutput): string {
+export function formatTextResult(
+  result: CheckResult | AggregateCheckOutput,
+  options?: { showInitCallout?: boolean },
+): string {
   const lines: string[] = [];
 
   if ('results' in result) {
@@ -68,5 +71,19 @@ export function formatTextResult(result: CheckResult | AggregateCheckOutput): st
   lines.push(`\nProdVerdict · ${result.contract} contract · ${verdictLabel}`);
   lines.push(`Evaluated at: ${result.evaluatedAt}\n`);
   lines.push(...formatFindings(result.findings));
+  if (result.verdict === 'fail' && options?.showInitCallout !== false) {
+    lines.push(formatFailCallout(result.contract));
+  }
   return lines.join('\n');
+}
+
+function formatFailCallout(contract: string): string {
+  if (contract !== 'access') return '';
+  return [
+    chalk.dim('─'.repeat(42)),
+    'Run this in your repo:',
+    chalk.cyan('  npx prodverdict init --stack nextjs-stripe --mcp --cursor-rule'),
+    chalk.dim('─'.repeat(42)),
+    '',
+  ].join('\n');
 }
