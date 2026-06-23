@@ -34,7 +34,7 @@ const program = new Command();
 program
   .name('prodverdict')
   .description('Deterministic production contract verification for AI-assisted SaaS')
-  .version('0.9.1');
+  .version('0.9.2');
 
 program
   .command('check [contract]')

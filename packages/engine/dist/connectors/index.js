@@ -1,5 +1,5 @@
 export { createLiveStripeReader } from './stripe-live.js';
-export { createLivePaddleReader } from './paddle-live.js';
+export { createLivePaddleReader, resolvePaddleEnvironment } from './paddle-live.js';
 export { createLiveBillingReader } from './billing-reader.js';
 export { createLivePostgresReader } from './postgres-live.js';
 export { createFixtureStripeReader, createFixtureDatabaseReader } from './fixture.js';

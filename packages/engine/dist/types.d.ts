@@ -15,8 +15,9 @@ export interface CheckResult {
     findings: Finding[];
     evaluatedAt: string;
 }
+export type ProdVerdictErrorCode = 'CONFIG_INVALID' | 'CONNECTOR_ERROR' | 'UNKNOWN';
 export interface ProdVerdictError extends Error {
-    code: 'CONFIG_INVALID' | 'CONNECTOR_ERROR' | 'UNKNOWN';
+    code: ProdVerdictErrorCode;
 }
 export declare function isProdVerdictError(err: unknown): err is ProdVerdictError;
 //# sourceMappingURL=types.d.ts.map

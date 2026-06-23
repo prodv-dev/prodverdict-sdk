@@ -15,7 +15,7 @@ const program = new Command();
 program
     .name('prodverdict')
     .description('Deterministic production contract verification for AI-assisted SaaS')
-    .version('0.9.1');
+    .version('0.9.2');
 program
     .command('check [contract]')
     .description('Run contract checks: access (default), config, migration, boundary, webhook, restore, or all. Use --format json|agent for machine-readable output.')

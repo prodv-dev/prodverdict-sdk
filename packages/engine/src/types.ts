@@ -18,10 +18,23 @@ export interface CheckResult {
   evaluatedAt: string;
 }
 
+export type ProdVerdictErrorCode = 'CONFIG_INVALID' | 'CONNECTOR_ERROR' | 'UNKNOWN';
+
 export interface ProdVerdictError extends Error {
-  code: 'CONFIG_INVALID' | 'CONNECTOR_ERROR' | 'UNKNOWN';
+  code: ProdVerdictErrorCode;
 }
 
+const PRODVERDICT_ERROR_CODES = new Set<string>([
+  'CONFIG_INVALID',
+  'CONNECTOR_ERROR',
+  'UNKNOWN',
+]);
+
 export function isProdVerdictError(err: unknown): err is ProdVerdictError {
-  return err instanceof Error && 'code' in err;
+  return (
+    err instanceof Error &&
+    'code' in err &&
+    typeof (err as { code: unknown }).code === 'string' &&
+    PRODVERDICT_ERROR_CODES.has((err as { code: string }).code)
+  );
 }

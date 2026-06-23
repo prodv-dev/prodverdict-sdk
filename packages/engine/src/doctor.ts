@@ -2,8 +2,9 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import pg from 'pg';
 import Stripe from 'stripe';
-import { Paddle, Environment } from '@paddle/paddle-node-sdk';
+import { Paddle } from '@paddle/paddle-node-sdk';
 import { parseConfigFile } from './config/index.js';
+import { resolvePaddleEnvironment } from './connectors/paddle-live.js';
 import type { AccessContractConfig, ProdVerdictConfig } from './config/schema.js';
 
 export type DoctorCheckStatus = 'pass' | 'fail' | 'skip';
@@ -70,8 +71,7 @@ async function pingStripe(secretKeyEnv: string, env: Record<string, string | und
 async function pingPaddle(apiKeyEnv: string, env: Record<string, string | undefined>): Promise<void> {
   const key = env[apiKeyEnv];
   if (!key) throw new Error(`Missing ${apiKeyEnv}`);
-  const paddleEnv =
-    env.PADDLE_ENVIRONMENT === 'production' ? Environment.production : Environment.sandbox;
+  const paddleEnv = resolvePaddleEnvironment(env.PADDLE_ENVIRONMENT);
   const paddle = new Paddle(key, { environment: paddleEnv });
   for await (const _ of paddle.subscriptions.list({ perPage: 1 })) {
     break;

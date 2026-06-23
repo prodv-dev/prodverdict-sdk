@@ -14,6 +14,18 @@ function normalizeStatus(status: string): string {
   return s;
 }
 
+/**
+ * Resolve the Paddle SDK environment from the PADDLE_ENVIRONMENT value.
+ * Case-insensitive, defaults to sandbox. Shared so the live connector and
+ * `doctor` always target the same environment (e.g. "Production" must not
+ * make doctor ping sandbox while live checks hit production).
+ */
+export function resolvePaddleEnvironment(value: string | undefined): Environment {
+  return (value ?? 'sandbox').toLowerCase() === 'production'
+    ? Environment.production
+    : Environment.sandbox;
+}
+
 export function createLivePaddleReader(apiKeyEnvVar: string): StripeReader {
   const key = process.env[apiKeyEnvVar];
   if (!key) {
@@ -23,8 +35,7 @@ export function createLivePaddleReader(apiKeyEnvVar: string): StripeReader {
     );
   }
 
-  const envName = (process.env.PADDLE_ENVIRONMENT ?? 'sandbox').toLowerCase();
-  const environment = envName === 'production' ? Environment.production : Environment.sandbox;
+  const environment = resolvePaddleEnvironment(process.env.PADDLE_ENVIRONMENT);
 
   const client = new Paddle(key, { environment });
 

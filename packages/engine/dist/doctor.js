@@ -2,8 +2,9 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import pg from 'pg';
 import Stripe from 'stripe';
-import { Paddle, Environment } from '@paddle/paddle-node-sdk';
+import { Paddle } from '@paddle/paddle-node-sdk';
 import { parseConfigFile } from './config/index.js';
+import { resolvePaddleEnvironment } from './connectors/paddle-live.js';
 function check(name, status, message) {
     return { name, status, message };
 }
@@ -47,7 +48,7 @@ async function pingPaddle(apiKeyEnv, env) {
     const key = env[apiKeyEnv];
     if (!key)
         throw new Error(`Missing ${apiKeyEnv}`);
-    const paddleEnv = env.PADDLE_ENVIRONMENT === 'production' ? Environment.production : Environment.sandbox;
+    const paddleEnv = resolvePaddleEnvironment(env.PADDLE_ENVIRONMENT);
     const paddle = new Paddle(key, { environment: paddleEnv });
     for await (const _ of paddle.subscriptions.list({ perPage: 1 })) {
         break;

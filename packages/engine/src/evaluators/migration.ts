@@ -63,6 +63,82 @@ function stripComments(sql: string): string {
     .replace(/--.*$/gm, ' ');
 }
 
+/**
+ * Split a SQL string into individual statements on top-level semicolons,
+ * respecting single/double quotes and dollar-quoted bodies ($tag$ ... $tag$).
+ *
+ * Rules with negative look-aheads (e.g. CREATE INDEX without CONCURRENTLY,
+ * ADD COLUMN NOT NULL without DEFAULT) must be evaluated per statement —
+ * otherwise a safe statement elsewhere in the same file would mask an unsafe one.
+ */
+export function splitSqlStatements(sql: string): string[] {
+  const statements: string[] = [];
+  let current = '';
+  let inSingle = false;
+  let inDouble = false;
+  let dollarTag: string | null = null;
+
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i]!;
+
+    if (dollarTag) {
+      if (ch === '$' && sql.startsWith(dollarTag, i)) {
+        current += dollarTag;
+        i += dollarTag.length - 1;
+        dollarTag = null;
+        continue;
+      }
+      current += ch;
+      continue;
+    }
+
+    if (inSingle) {
+      current += ch;
+      if (ch === "'") inSingle = false;
+      continue;
+    }
+
+    if (inDouble) {
+      current += ch;
+      if (ch === '"') inDouble = false;
+      continue;
+    }
+
+    if (ch === "'") {
+      inSingle = true;
+      current += ch;
+      continue;
+    }
+
+    if (ch === '"') {
+      inDouble = true;
+      current += ch;
+      continue;
+    }
+
+    if (ch === '$') {
+      const tag = /^\$[A-Za-z0-9_]*\$/.exec(sql.slice(i))?.[0];
+      if (tag) {
+        dollarTag = tag;
+        current += tag;
+        i += tag.length - 1;
+        continue;
+      }
+    }
+
+    if (ch === ';') {
+      statements.push(current);
+      current = '';
+      continue;
+    }
+
+    current += ch;
+  }
+
+  if (current.trim()) statements.push(current);
+  return statements.filter((s) => s.trim().length > 0);
+}
+
 function collectMigrationFiles(repoRoot: string, patterns: string[]): string[] {
   const regexes = patterns.map(globToRegExp);
   const files = new Set<string>();
@@ -120,10 +196,14 @@ export async function evaluateMigration(
       continue;
     }
     const sql = stripComments(content);
+    const statements = splitSqlStatements(sql);
     const rel = path.relative(sources.repoRoot, filePath).replace(/\\/g, '/');
 
     for (const rule of rules) {
-      if (rule.test(sql)) {
+      // Evaluate each rule per statement so a safe statement (e.g. one using
+      // CONCURRENTLY or DEFAULT) cannot mask an unsafe statement in the same
+      // file. At most one finding per rule per file to avoid duplicate noise.
+      if (statements.some((stmt) => rule.test(stmt))) {
         findings.push({
           contract: 'migration',
           severity: rule.severity,
