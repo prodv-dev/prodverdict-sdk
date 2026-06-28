@@ -15,5 +15,6 @@ type ScanResult = {
 };
 export declare function scanRepo(cwd: string): ScanResult;
 export declare function formatScanResult(result: ScanResult): string;
+export declare function formatScanAgent(result: ScanResult): string;
 export {};
 //# sourceMappingURL=scan-repo.d.ts.map

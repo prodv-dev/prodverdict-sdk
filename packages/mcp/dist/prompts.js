@@ -1,27 +1,48 @@
 import { z } from 'zod';
 const STACKS = ['nextjs-stripe', 'supabase-stripe', 'paddle-stripe', 'rails-stripe'];
 function localSetupPromptBody(stack) {
-    return `# Set up ProdVerdict in this repository
+    return `# Set up ProdVerdict in this repository (AI agent bootstrap)
 
 Stack template: **${stack}**
 
-## Steps
+## Steps (run in order)
 
-1. Run \`npx prodverdict init --stack ${stack} --mcp --cursor-rule\`
-2. Customize \`prodverdict.yml\` — map real Stripe/Paddle price IDs to plan slugs
-3. Add GitHub secrets: \`DATABASE_URL\`, billing API key (read-only)
-4. Copy workflow from https://github.com/prodv-dev/prodverdict-sdk/tree/main/examples/workflows
-5. Verify locally:
+1. Scan the repo:
    \`\`\`bash
+   npx prodverdict scan --format agent
+   \`\`\`
+
+2. Bootstrap all files (non-interactive):
+   \`\`\`bash
+   npx prodverdict setup --yes --format agent --from-env --stack ${stack}
+   \`\`\`
+   Or call MCP tool \`bootstrap_prodverdict\` with \`stack: "${stack}"\`.
+
+3. If \`missing\` is non-empty in the JSON output:
+   - **STRIPE_SECRET_KEY**: https://dashboard.stripe.com/apikeys — restricted key, Customers + Subscriptions read
+   - **DATABASE_URL**: read-only Postgres role — export in terminal or add to \`.env.local\`
+   - Re-run bootstrap after exporting vars
+
+4. Verify setup:
+   \`\`\`bash
+   npx prodverdict status --format agent
    npx prodverdict doctor --format agent
-   npx prodverdict check all --format agent
+   \`\`\`
+
+5. Customize \`prodverdict.yml\` — replace placeholder price IDs with real Stripe/Paddle price IDs from the repo
+
+6. GitHub repo secrets for scheduled workflow:
+   \`\`\`bash
+   gh secret set STRIPE_SECRET_KEY
+   gh secret set DATABASE_URL
+   gh secret set SLACK_WEBHOOK_URL
    \`\`\`
 
 ## Rules
 
+- Never commit secrets — \`.env.local\` and \`.cursor/mcp.json\` env stay local
 - Fail closed on missing credentials
-- Never commit secrets
-- Merge blocking happens in CI; MCP is for local agent verification
+- Merge blocking happens in CI; MCP verifies locally before PR
 `;
 }
 function remoteSetupPromptBody(stack) {
@@ -29,11 +50,18 @@ function remoteSetupPromptBody(stack) {
 
 Stack template: **${stack}**
 
-## Remote MCP (config + migration via GitHub)
+## Local bootstrap (AI agent)
+
+\`\`\`bash
+npx prodverdict setup --yes --format agent --from-env --stack ${stack}
+npx prodverdict status --format agent
+\`\`\`
+
+## Remote MCP (config + migration via GitHub — no billing secrets on cloud)
 
 1. Create a project at https://prodverdict.com/dashboard
-2. Connect GitHub App (Pro) for repo reads — no Stripe/DB secrets on cloud
-3. Add remote MCP to Cursor (copy from dashboard setup or):
+2. Connect GitHub App (Pro) for repo reads
+3. Add remote MCP:
    \`\`\`bash
    npx prodverdict init --stack ${stack} --remote-mcp
    \`\`\`
@@ -41,10 +69,7 @@ Stack template: **${stack}**
 
 ## Access contract (local only)
 
-Billing vs database checks require secrets on your machine:
-
 \`\`\`bash
-npx prodverdict init --stack ${stack} --mcp --cursor-rule
 npx prodverdict doctor --format agent
 npx prodverdict check access --format agent
 \`\`\`
@@ -53,7 +78,6 @@ npx prodverdict check access --format agent
 
 - Access checks never leave your machine
 - Fail closed on missing credentials
-- Merge blocking happens in CI
 `;
 }
 function localVerifyPromptBody() {
@@ -100,8 +124,8 @@ export function registerPrompts(server, mode = 'local') {
     const setupBody = mode === 'remote' ? remoteSetupPromptBody : localSetupPromptBody;
     const verifyBody = mode === 'remote' ? remoteVerifyPromptBody : localVerifyPromptBody;
     server.prompt('setup_prodverdict', mode === 'remote'
-        ? 'Guide for ProdVerdict remote MCP (GitHub repo checks) plus local access setup.'
-        : 'Guide for setting up ProdVerdict in a repository (prodverdict.yml + CI + optional MCP).', {
+        ? 'Guide for ProdVerdict remote MCP (GitHub repo checks) plus local AI bootstrap.'
+        : 'Guide for AI agent bootstrap: setup --yes, env wiring, credentials, scheduled workflow.', {
         stack: z
             .enum(STACKS)
             .optional()

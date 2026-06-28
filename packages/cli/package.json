@@ -1,9 +1,15 @@
 {
   "name": "prodverdict",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "CLI for ProdVerdict — deterministic production contract checks for AI-assisted SaaS",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    "./bootstrap": {
+      "import": "./dist/setup/bootstrap.js",
+      "types": "./dist/setup/bootstrap.d.ts"
+    }
+  },
   "bin": {
     "prodverdict": "bin/prodverdict.js"
   },
@@ -11,6 +17,7 @@
     "dist",
     "bin",
     "demo",
+    "bundled",
     "src"
   ],
   "repository": {
@@ -27,6 +34,7 @@
     "cli"
   ],
   "scripts": {
+    "prebuild": "node scripts/copy-bundled.mjs",
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {

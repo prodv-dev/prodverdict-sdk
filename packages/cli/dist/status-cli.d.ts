@@ -10,6 +10,7 @@ export declare function buildStatus(repoRoot?: string): {
     configPath: string | null;
     contracts: string[] | null;
 };
+export declare function formatStatusAgent(repoRoot?: string): string;
 export declare function registerStatusCommand(program: Command): void;
 export {};
 //# sourceMappingURL=status-cli.d.ts.map

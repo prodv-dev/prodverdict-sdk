@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, unlinkSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { writeInitConfig, writeMcpConfig, writeRemoteMcpConfig, writeCursorRule } from './init-config.js';
+import { writeInitConfig, writeMcpConfig, writeRemoteMcpConfig, writeCursorRule, writeCursorSkills } from './init-config.js';
 
 describe('writeInitConfig', () => {
   it('writes supabase-paddle yaml', () => {
@@ -23,12 +23,15 @@ describe('writeInitConfig', () => {
     unlinkSync(path);
   });
 
-  it('writes mcp.json and cursor rule', () => {
+  it('writes mcp.json, cursor rule, and agent skills', () => {
     const dir = mkdtempSync(join(tmpdir(), 'pv-init-'));
     const mcpPath = writeMcpConfig(dir, 'nextjs-stripe');
     const rulePath = writeCursorRule(dir);
+    const skillPaths = writeCursorSkills(dir);
     expect(readFileSync(mcpPath, 'utf8')).toContain('prodverdict');
     expect(readFileSync(rulePath, 'utf8')).toContain('ProdVerdict');
+    expect(skillPaths).toHaveLength(2);
+    expect(readFileSync(skillPaths[0]!, 'utf8')).toContain('prodverdict');
   });
 
   it('merges remote MCP into mcp.json', () => {

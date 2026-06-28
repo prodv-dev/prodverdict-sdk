@@ -7,16 +7,20 @@ import {
   writeInitConfig,
   writeMcpConfig,
   writeCursorRule,
+  writeCursorSkills,
 } from './init-config.js';
 import { isStackTemplate, STACK_META } from './stacks.js';
 import { runBillingKeyHelper } from './setup/billing-key-helper.js';
 import { runPostgresRoleHelper } from './setup/postgres-role-helper.js';
-import { promptYesNo, pressEnterToContinue, divider } from './setup/prompt.js';
+import { promptYesNo, divider } from './setup/prompt.js';
 import { runDoctorCli, formatDoctorText } from './doctor-cli.js';
 import { runCheck } from './run-check.js';
 import { formatTextResult } from './format/text.js';
 import { buildScheduledWorkflow } from './scheduled-cli.js';
+import { runSetupNonInteractive } from './setup/bootstrap.js';
 import { CLI_VERSION } from './version.js';
+
+export type SetupFormat = 'text' | 'agent';
 
 export interface SetupOptions {
   stack?: string | undefined;
@@ -26,6 +30,12 @@ export interface SetupOptions {
   skipWorkflow?: boolean | undefined;
   skipMcp?: boolean | undefined;
   skipCursorRule?: boolean | undefined;
+  skipSkills?: boolean | undefined;
+  yes?: boolean | undefined;
+  force?: boolean | undefined;
+  fromEnv?: boolean | undefined;
+  format?: SetupFormat | undefined;
+  repoRoot?: string | undefined;
 }
 
 interface WizardState {
@@ -34,14 +44,34 @@ interface WizardState {
   workflowInstalled: boolean;
   mcpInstalled: boolean;
   cursorRuleInstalled: boolean;
+  skillsInstalled: boolean;
   doctorOk: boolean;
   firstCheckRan: boolean;
 }
 
 export async function runSetup(opts: SetupOptions): Promise<number> {
+  if (opts.yes) {
+    const result = await runSetupNonInteractive({
+      repoRoot: opts.repoRoot,
+      stack: opts.stack,
+      output: opts.output,
+      force: opts.force,
+      skipWorkflow: opts.skipWorkflow,
+      skipMcp: opts.skipMcp,
+      skipCursorRule: opts.skipCursorRule,
+      skipSkills: opts.skipSkills,
+      fromEnv: opts.fromEnv !== false,
+    });
+    if (opts.format === 'agent') {
+      process.stdout.write(JSON.stringify(result.agent, null, 2) + '\n');
+    } else {
+      printNonInteractiveSummary(result.agent);
+    }
+    return result.agent.exitCode;
+  }
+
   printHeader();
 
-  // Step 1: detect or confirm stack
   const stack = await resolveStack(opts.stack);
   if (!isStackTemplate(stack)) {
     process.stderr.write(
@@ -62,11 +92,11 @@ export async function runSetup(opts: SetupOptions): Promise<number> {
     workflowInstalled: false,
     mcpInstalled: false,
     cursorRuleInstalled: false,
+    skillsInstalled: false,
     doctorOk: false,
     firstCheckRan: false,
   };
 
-  // Step 2: billing key helper
   if (!opts.skipBilling) {
     const provider = meta.billing;
     console.log();
@@ -74,14 +104,12 @@ export async function runSetup(opts: SetupOptions): Promise<number> {
     await runBillingKeyHelper(provider);
   }
 
-  // Step 3: database role helper
   if (!opts.skipDatabase) {
     console.log();
     console.log(chalk.bold.underline('Step 2 of 5: Database read-only role'));
     await runPostgresRoleHelper(stack);
   }
 
-  // Step 4: write prodverdict.yml
   console.log();
   console.log(chalk.bold.underline('Step 3 of 5: Write prodverdict.yml'));
   const configAlreadyExists = existsSync(state.configPath);
@@ -99,7 +127,6 @@ export async function runSetup(opts: SetupOptions): Promise<number> {
     console.log(chalk.dim('  Skipped — keeping existing prodverdict.yml'));
   }
 
-  // Step 5: run doctor + first check
   console.log();
   console.log(chalk.bold.underline('Step 4 of 5: Verify credentials (doctor)'));
   try {
@@ -123,7 +150,6 @@ export async function runSetup(opts: SetupOptions): Promise<number> {
         process.stdout.write(formatTextResult(checkResult) + '\n');
         state.firstCheckRan = true;
         if (checkExit !== 0 && checkExit !== 1) {
-          // exit 2 = config/credential error — let user proceed but warn
           console.log(
             chalk.yellow('  ⚠ First check could not run — fix the issues above and re-run setup.'),
           );
@@ -151,7 +177,6 @@ export async function runSetup(opts: SetupOptions): Promise<number> {
     );
   }
 
-  // Step 6: GitHub Actions workflow
   if (!opts.skipWorkflow) {
     console.log();
     console.log(chalk.bold.underline('Step 5 of 5: Schedule drift detection (GitHub Actions)'));
@@ -199,7 +224,6 @@ export async function runSetup(opts: SetupOptions): Promise<number> {
     }
   }
 
-  // Cursor MCP + agent rule (optional bonus)
   if (!opts.skipMcp) {
     console.log();
     const installMcp = await promptYesNo(
@@ -243,6 +267,32 @@ export async function runSetup(opts: SetupOptions): Promise<number> {
     }
   }
 
+  if (!opts.skipSkills) {
+    const installSkills = await promptYesNo(
+      '  Also copy ProdVerdict agent skills into .cursor/skills/ for your team?',
+      true,
+    );
+    if (installSkills) {
+      try {
+        const paths = writeCursorSkills(process.cwd());
+        state.skillsInstalled = paths.length > 0;
+        for (const p of paths) {
+          console.log(chalk.green(`  ✔ Wrote ${p}`));
+        }
+        if (paths.length === 0) {
+          console.log(chalk.dim('  Skipped — skills already present (use setup --yes --force to overwrite)'));
+        }
+      } catch (err) {
+        console.log(
+          chalk.yellow(
+            '  ⚠ Could not write agent skills: ' +
+              (err instanceof Error ? err.message : String(err)),
+          ),
+        );
+      }
+    }
+  }
+
   printSummary(state);
   return 0;
 }
@@ -264,7 +314,6 @@ async function resolveStack(explicit?: string): Promise<string> {
     );
     if (confirm) return stack;
   }
-  // Fallback: ask user to choose
   console.log(
     chalk.dim('  Pass --stack <template> to specify. Run: prodverdict init --list-stacks'),
   );
@@ -277,7 +326,36 @@ function printHeader(): void {
   console.log(
     chalk.dim('Interactive first-run wizard. ~5 minutes. Press Ctrl+C at any time to bail.'),
   );
+  console.log(chalk.dim('For AI agents: npx prodverdict setup --yes --format agent --from-env'));
   console.log(chalk.dim(divider(60)));
+}
+
+function printNonInteractiveSummary(agent: import('@prodverdict/engine').AgentSetupOutput): void {
+  console.log();
+  console.log(chalk.bold('ProdVerdict setup') + chalk.dim(` · v${CLI_VERSION}`) + chalk.dim(' (non-interactive)'));
+  console.log();
+  console.log(chalk.dim(agent.summary));
+  console.log();
+  console.log(chalk.bold('Stack: ') + agent.stack);
+  console.log(chalk.bold('Verdict: ') + agent.verdict);
+  if (agent.filesWritten.length > 0) {
+    console.log(chalk.bold('Files written:'));
+    for (const f of agent.filesWritten) {
+      console.log(chalk.green(`  ✔ ${f}`));
+    }
+  }
+  if (agent.envWired.length > 0) {
+    console.log(chalk.bold('Env wired: ') + agent.envWired.join(', '));
+  }
+  if (agent.missing.length > 0) {
+    console.log(chalk.yellow('Missing: ') + agent.missing.join(', '));
+  }
+  console.log();
+  console.log(chalk.bold('Next steps:'));
+  for (const step of agent.nextSteps) {
+    console.log(`  ${chalk.cyan('→')} ${step}`);
+  }
+  console.log();
 }
 
 function printSummary(state: WizardState): void {
@@ -292,6 +370,7 @@ function printSummary(state: WizardState): void {
   console.log(`  ${chalk.dim('GitHub Actions:')}     ${state.workflowInstalled ? chalk.green('✓ .github/workflows/prodverdict-hourly.yml') : chalk.dim('not installed')}`);
   console.log(`  ${chalk.dim('Cursor MCP:')}         ${state.mcpInstalled ? chalk.green('✓ .cursor/mcp.json') : chalk.dim('not written')}`);
   console.log(`  ${chalk.dim('Cursor rule:')}        ${state.cursorRuleInstalled ? chalk.green('✓ .cursor/rules/prodverdict-agent.mdc') : chalk.dim('not written')}`);
+  console.log(`  ${chalk.dim('Agent skills:')}       ${state.skillsInstalled ? chalk.green('✓ .cursor/skills/prodverdict-*') : chalk.dim('not written')}`);
   console.log();
   console.log(chalk.dim('Next:'));
   if (state.workflowInstalled) {
@@ -308,23 +387,41 @@ export function registerSetupCommand(program: Command): void {
   program
     .command('setup')
     .description(
-      'Interactive first-run wizard: detect stack, set up billing + DB credentials, write config, install scheduled workflow, wire Cursor MCP. ~5 minutes, no docs required.',
+      'First-run setup: detect stack, credentials, config, scheduled workflow, Cursor MCP. Use --yes for non-interactive AI bootstrap.',
     )
     .option('-s, --stack <stack>', 'Stack template (skip auto-detect)')
     .option('-o, --output <path>', 'Output config path (default: ./prodverdict.yml)')
+    .option('--yes', 'Non-interactive: write all files with defaults (for AI agents)')
+    .option('--force', 'With --yes: overwrite existing config, workflow, MCP, and rule files')
+    .option('--from-env', 'Read STRIPE_SECRET_KEY / DATABASE_URL from .env.local and .env (default with --yes)')
+    .option('--no-from-env', 'Do not read env files or wire MCP env')
+    .option('-f, --format <format>', 'Output format: text or agent (with --yes)', 'text')
     .option('--skip-billing', 'Skip the billing key helper')
     .option('--skip-database', 'Skip the Postgres role helper')
     .option('--skip-workflow', 'Skip the GitHub Actions workflow install')
     .option('--skip-mcp', 'Skip the Cursor MCP config')
     .option('--skip-cursor-rule', 'Skip the Cursor agent rule')
-    .action(async (options: SetupOptions) => {
+    .option('--skip-skills', 'Skip copying agent skills to .cursor/skills/')
+    .option('--repo-root <path>', 'Repo root (default: cwd)')
+    .action(async (options: SetupOptions & { fromEnv?: boolean }) => {
       try {
-        const exitCode = await runSetup(options);
+        const exitCode = await runSetup({
+          ...options,
+          fromEnv: options.fromEnv !== false,
+        });
         process.exit(exitCode);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        process.stderr.write(chalk.red('Setup error: ' + msg + '\n'));
+        if (options.format === 'agent') {
+          process.stdout.write(
+            JSON.stringify({ error: msg, schemaVersion: '1' }, null, 2) + '\n',
+          );
+        } else {
+          process.stderr.write(chalk.red('Setup error: ' + msg + '\n'));
+        }
         process.exit(2);
       }
     });
 }
+
+export { runSetupNonInteractive } from './setup/bootstrap.js';

@@ -7,6 +7,7 @@ import { runAccessCheck, runConfigCheck, runMigrationCheck, runBoundaryCheck, ru
 import { registerPrompts } from './prompts.js';
 import { registerResources } from './resources.js';
 import { buildSuggestFixOutput } from './suggest-fix.js';
+import { runSetupNonInteractive } from 'prodverdict/bootstrap';
 const DEFAULT_CONFIG = './prodverdict.yml';
 const configPathSchema = z
     .string()
@@ -199,6 +200,35 @@ server.tool('validate_config', 'Parse and validate prodverdict.yml without runni
             valid: true,
             contracts: cfg.contracts.map((c) => ({ type: c.type })),
         });
+    }
+    catch (err) {
+        return toolError(err);
+    }
+});
+server.tool('bootstrap_prodverdict', 'Non-interactive first-run bootstrap for AI agents: detect stack, write prodverdict.yml, ' +
+    'scheduled workflow, Cursor MCP, agent rule, and agent skills. Optionally wire env from .env.local/.env. ' +
+    'Returns agent JSON with filesWritten, missing credentials, and nextSteps.', {
+    stack: z
+        .string()
+        .optional()
+        .describe('Stack template (e.g. nextjs-stripe). Auto-detected when omitted.'),
+    repoRoot: repoRootSchema,
+    fromEnv: z
+        .boolean()
+        .optional()
+        .describe('Read STRIPE_SECRET_KEY / DATABASE_URL from .env.local and .env (default true)'),
+    skipWorkflow: z.boolean().optional().describe('Skip writing GitHub Actions workflow'),
+    force: z.boolean().optional().describe('Overwrite existing config, workflow, MCP, and rule files'),
+}, async ({ stack, repoRoot, fromEnv, skipWorkflow, force }) => {
+    try {
+        const result = await runSetupNonInteractive({
+            repoRoot: repoRoot ? resolve(repoRoot) : process.cwd(),
+            stack,
+            fromEnv: fromEnv !== false,
+            skipWorkflow: skipWorkflow ?? false,
+            force: force ?? false,
+        });
+        return toolJson(result.agent);
     }
     catch (err) {
         return toolError(err);

@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import type { Command } from 'commander';
-import { parseConfigFile, isProdVerdictError } from '@prodverdict/engine';
+import { parseConfigFile, isProdVerdictError, toAgentStatusOutput } from '@prodverdict/engine';
 import { CLI_VERSION } from './version.js';
 
 interface StatusRow {
@@ -195,6 +195,19 @@ function formatStatus(repoRoot: string = process.cwd()): string {
   return lines.join('\n');
 }
 
+export function formatStatusAgent(repoRoot: string = process.cwd()): string {
+  const { rows } = buildStatus(repoRoot);
+  const agent = toAgentStatusOutput(
+    rows.map((r) => ({
+      label: r.label,
+      ok: r.ok,
+      detail: r.detail,
+      ...(r.hint !== undefined ? { hint: r.hint } : {}),
+    })),
+  );
+  return JSON.stringify(agent, null, 2) + '\n';
+}
+
 export function registerStatusCommand(program: Command): void {
   program
     .command('status')
@@ -202,11 +215,18 @@ export function registerStatusCommand(program: Command): void {
       'One-glance health check — shows what is configured (config, env vars, workflow, MCP) and what to do next.',
     )
     .option('--repo-root <path>', 'Repo root (default: cwd)')
-    .action((options: { repoRoot?: string }) => {
+    .option('-f, --format <format>', 'Output format: text or agent', 'text')
+    .action((options: { repoRoot?: string; format?: string }) => {
       try {
-        process.stdout.write(formatStatus(options.repoRoot ?? process.cwd()));
-        const { rows } = buildStatus(options.repoRoot ?? process.cwd());
-        process.exit(rows.every((r) => r.ok) ? 0 : 1);
+        const root = options.repoRoot ?? process.cwd();
+        if (options.format === 'agent') {
+          process.stdout.write(formatStatusAgent(root));
+        } else {
+          process.stdout.write(formatStatus(root));
+        }
+        const { rows } = buildStatus(root);
+        const allOk = rows.every((r) => r.ok);
+        process.exit(allOk ? 0 : 1);
       } catch (err) {
         if (isProdVerdictError(err)) {
           process.stderr.write(`[${err.code}] ${err.message}\n`);

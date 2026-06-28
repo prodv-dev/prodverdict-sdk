@@ -10,7 +10,7 @@ import { runDoctorCli, formatDoctorText } from './doctor-cli.js';
 import { STACK_ORDER, formatStackListTable, initNextSteps, isStackTemplate, } from './stacks.js';
 import { runDemo, isDemoStack } from './demo-cli.js';
 import { resolveInitStack } from './detect-stack.js';
-import { formatScanResult, scanRepo } from './scan-repo.js';
+import { formatScanResult, formatScanAgent, scanRepo } from './scan-repo.js';
 import { registerScheduledCommand } from './scheduled-cli.js';
 import { registerSetupCommand } from './setup-cli.js';
 import { registerStatusCommand } from './status-cli.js';
@@ -44,9 +44,16 @@ program
     .command('scan')
     .description('Scan the repo for applicable contracts — no credentials required.')
     .option('--repo-root <path>', 'Repo root to scan (default: cwd)')
+    .option('-f, --format <format>', 'Output format: text or agent', 'text')
     .action((options) => {
     const cwd = resolve(options.repoRoot ?? process.cwd());
-    process.stdout.write(formatScanResult(scanRepo(cwd)));
+    const result = scanRepo(cwd);
+    if (options.format === 'agent') {
+        process.stdout.write(formatScanAgent(result));
+    }
+    else {
+        process.stdout.write(formatScanResult(result));
+    }
     process.exit(0);
 });
 program

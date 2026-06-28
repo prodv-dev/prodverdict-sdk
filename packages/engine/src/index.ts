@@ -55,6 +55,17 @@ export {
   toAgentCheckOutput,
   toAgentAggregateOutput,
   toAgentDoctorOutput,
+  toAgentSetupOutput,
+  toAgentScanOutput,
+  toAgentStatusOutput,
   AGENT_SCHEMA_VERSION,
 } from './agent-format.js';
-export type { AgentCheckOutput, AgentAggregateOutput, AgentDoctorOutput } from './agent-format.js';
+export type {
+  AgentCheckOutput,
+  AgentAggregateOutput,
+  AgentDoctorOutput,
+  AgentSetupOutput,
+  AgentScanOutput,
+  AgentStatusOutput,
+  SetupBootstrapInput,
+} from './agent-format.js';

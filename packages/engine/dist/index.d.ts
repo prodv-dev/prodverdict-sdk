@@ -24,6 +24,6 @@ export { runContracts, resolveCheckExitCode } from './run.js';
 export type { RunContractsOptions, RunContractsOutput, AccessSourceMode } from './run.js';
 export { runDoctor } from './doctor.js';
 export type { DoctorResult, DoctorCheck, DoctorCheckStatus, RunDoctorOptions } from './doctor.js';
-export { toAgentCheckOutput, toAgentAggregateOutput, toAgentDoctorOutput, AGENT_SCHEMA_VERSION, } from './agent-format.js';
-export type { AgentCheckOutput, AgentAggregateOutput, AgentDoctorOutput } from './agent-format.js';
+export { toAgentCheckOutput, toAgentAggregateOutput, toAgentDoctorOutput, toAgentSetupOutput, toAgentScanOutput, toAgentStatusOutput, AGENT_SCHEMA_VERSION, } from './agent-format.js';
+export type { AgentCheckOutput, AgentAggregateOutput, AgentDoctorOutput, AgentSetupOutput, AgentScanOutput, AgentStatusOutput, SetupBootstrapInput, } from './agent-format.js';
 //# sourceMappingURL=index.d.ts.map

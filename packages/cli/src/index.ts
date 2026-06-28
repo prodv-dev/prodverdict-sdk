@@ -26,7 +26,7 @@ import {
 } from './stacks.js';
 import { runDemo, isDemoStack } from './demo-cli.js';
 import { resolveInitStack } from './detect-stack.js';
-import { formatScanResult, scanRepo } from './scan-repo.js';
+import { formatScanResult, formatScanAgent, scanRepo } from './scan-repo.js';
 import { registerScheduledCommand } from './scheduled-cli.js';
 import { registerSetupCommand } from './setup-cli.js';
 import { registerStatusCommand } from './status-cli.js';
@@ -69,9 +69,15 @@ program
   .command('scan')
   .description('Scan the repo for applicable contracts — no credentials required.')
   .option('--repo-root <path>', 'Repo root to scan (default: cwd)')
-  .action((options: { repoRoot?: string }) => {
+  .option('-f, --format <format>', 'Output format: text or agent', 'text')
+  .action((options: { repoRoot?: string; format?: string }) => {
     const cwd = resolve(options.repoRoot ?? process.cwd());
-    process.stdout.write(formatScanResult(scanRepo(cwd)));
+    const result = scanRepo(cwd);
+    if (options.format === 'agent') {
+      process.stdout.write(formatScanAgent(result));
+    } else {
+      process.stdout.write(formatScanResult(result));
+    }
     process.exit(0);
   });
 

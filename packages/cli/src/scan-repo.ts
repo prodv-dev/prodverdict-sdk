@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import chalk from 'chalk';
+import { toAgentScanOutput } from '@prodverdict/engine';
 import { detectStack } from './detect-stack.js';
 import { STACK_META, isStackTemplate, type StackTemplate } from './stacks.js';
 
@@ -223,8 +224,8 @@ export function formatScanResult(result: ScanResult): string {
       : 'nextjs-stripe';
   lines.push('');
   lines.push(chalk.bold('Next:'));
-  lines.push(chalk.cyan(`  npx prodverdict setup`));
-  lines.push(chalk.dim('  (interactive wizard — billing key, DB role, config, scheduled workflow)'));
+  lines.push(chalk.cyan(`  npx prodverdict setup --yes --format agent --from-env`));
+  lines.push(chalk.dim('  (AI agent bootstrap — or run `npx prodverdict setup` for interactive)'));
   lines.push('');
   lines.push(chalk.dim('Or, one-by-one:'));
   lines.push(chalk.cyan(`  npx prodverdict init --stack ${stack} --mcp --cursor-rule`));
@@ -232,4 +233,16 @@ export function formatScanResult(result: ScanResult): string {
   lines.push('');
 
   return lines.join('\n');
+}
+
+export function formatScanAgent(result: ScanResult): string {
+  const agent = toAgentScanOutput(
+    result.cwd,
+    result.detectedStack,
+    result.hasProdverdictYml,
+    result.stripeFound,
+    result.paddleFound,
+    result.recommendedContracts,
+  );
+  return JSON.stringify(agent, null, 2) + '\n';
 }

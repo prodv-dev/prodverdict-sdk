@@ -11,5 +11,5 @@ export { evaluateEntitlementsMigration } from './evaluators/entitlements-migrati
 export { aggregateVerdict } from './verdict.js';
 export { runContracts, resolveCheckExitCode } from './run.js';
 export { runDoctor } from './doctor.js';
-export { toAgentCheckOutput, toAgentAggregateOutput, toAgentDoctorOutput, AGENT_SCHEMA_VERSION, } from './agent-format.js';
+export { toAgentCheckOutput, toAgentAggregateOutput, toAgentDoctorOutput, toAgentSetupOutput, toAgentScanOutput, toAgentStatusOutput, AGENT_SCHEMA_VERSION, } from './agent-format.js';
 //# sourceMappingURL=index.js.map
