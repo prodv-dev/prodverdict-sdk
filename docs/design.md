@@ -21,15 +21,15 @@ ProdVerdict consists of five layers:
 
 ## Contract Definition Language
 
-Contracts are defined in `prodverdict.yml`, a declarative YAML format.  Each contract has:
+Contracts are defined in `prodverdict.yml`, a declarative YAML format. Each contract has:
 
-* `type` – the kind of contract (e.g., `access`, `config`, `migration`, `boundary`, `restore`).
-* `source_of_truth` – where to pull authoritative state (e.g., Stripe, entitlements API, manual mapping).
-* `rules` – a list of assertions to evaluate.  Assertions can include conditions on Stripe subscription status, database columns, HTTP responses, environment variables, etc.
+* `type` – the kind of contract (e.g., `access`, `config`, `migration`, `boundary`, `webhook`, `restore`).
+* `source_of_truth` – where to pull authoritative state (e.g., Stripe, Paddle, Stripe Entitlements, manual mapping).
+* Contract-type-specific fields (e.g., `database`, `stripe`, `paddle`, `entitlements`, `plans`, `rules`, `paths`).
 * `severity` – how strongly a violation should be treated (`high` fails PRs, `medium` warns, `low` logs).
 * `fix` – optional instructions or templated patches to resolve violations.  For example, a migration contract might suggest using `CREATE INDEX CONCURRENTLY` instead of a plain `CREATE INDEX`.
 
-This language makes the system extensible: new contracts can be added without modifying the engine.  It also allows teams to write custom rules for organisation‑specific policies.
+Each contract type has a dedicated Zod schema and evaluator in the engine (see `core/packages/engine/src/config/schema.ts` and `core/packages/engine/src/evaluators/`). There is no generic `rules:` DSL — adding a new contract type means adding a new schema and evaluator. This keeps evaluators simple and the contract surface explicit, at the cost of some extensibility. Custom rules per organisation are supported within a contract type (e.g., `forbidden_write` fields in the boundary contract, `ignore_vars` in the config contract).
 
 ## Data Flow Example (Access Contract)
 

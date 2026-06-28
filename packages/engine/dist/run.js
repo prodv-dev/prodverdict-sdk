@@ -1,11 +1,12 @@
 import { dirname, resolve, basename } from 'node:path';
-import { createLiveBillingReader, createLivePostgresReader, createFixtureStripeReader, createFixtureDatabaseReader, loadFixtureSubscriptions, loadFixtureUsers, defaultFixturePaths, } from './connectors/index.js';
+import { createLiveBillingReader, createLiveEntitlementsReader, createLivePostgresReader, createFixtureStripeReader, createFixtureDatabaseReader, loadFixtureSubscriptions, loadFixtureUsers, defaultFixturePaths, } from './connectors/index.js';
 import { evaluateAccess } from './evaluators/access.js';
 import { evaluateConfig } from './evaluators/config.js';
 import { evaluateMigration } from './evaluators/migration.js';
 import { evaluateBoundary } from './evaluators/boundary.js';
 import { evaluateWebhook } from './evaluators/webhook.js';
 import { evaluateRestore } from './evaluators/restore.js';
+import { evaluateEntitlementsMigration } from './evaluators/entitlements-migration.js';
 import { aggregateVerdict } from './verdict.js';
 const EXIT_PASS = 0;
 const EXIT_FAIL = 1;
@@ -55,6 +56,12 @@ function buildAccessSources(accessCfg, opts) {
     }
     if (mode === 'fixtures-stripe') {
         return buildHybridSources(accessCfg, opts.configPath, opts.fixturesStripeDir);
+    }
+    if (accessCfg.source_of_truth === 'stripe_entitlements') {
+        return {
+            database: createLivePostgresReader(accessCfg),
+            entitlements: createLiveEntitlementsReader(accessCfg.entitlements.secret_env),
+        };
     }
     return {
         billing: createLiveBillingReader(accessCfg),
@@ -131,7 +138,29 @@ async function runSingleContract(type, opts) {
         const findings = await evaluateRestore(restoreCfg, { env });
         return { contract: 'restore', verdict: aggregateVerdict(findings), findings, evaluatedAt };
     }
-    throw makeUsageError(`Contract type "${type}" is not supported. Supported: access, config, migration, boundary, webhook, restore.`);
+    if (type === 'entitlements-migration') {
+        const entCfg = opts.config.contracts.find((c) => c.type === 'entitlements-migration');
+        if (!entCfg) {
+            throw makeUsageError('No entitlements-migration contract defined in prodverdict.yml.');
+        }
+        const sources = {
+            database: createLivePostgresReader(entCfg),
+            entitlements: createLiveEntitlementsReader(entCfg.entitlements.secret_env),
+        };
+        try {
+            const findings = await evaluateEntitlementsMigration(entCfg, sources);
+            return {
+                contract: 'entitlements-migration',
+                verdict: aggregateVerdict(findings),
+                findings,
+                evaluatedAt,
+            };
+        }
+        finally {
+            await sources.database.close?.();
+        }
+    }
+    throw makeUsageError(`Contract type "${type}" is not supported. Supported: access, config, migration, boundary, webhook, restore, entitlements-migration.`);
 }
 export async function runContracts(opts) {
     const types = contractTypesToRun(opts.config, opts.contracts);

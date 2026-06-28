@@ -15,6 +15,7 @@ const CONTRACT_LABEL = {
     boundary: 'Boundary Contract',
     webhook: 'Webhook Contract',
     restore: 'Restore Contract',
+    'entitlements-migration': 'Entitlements Migration Contract',
 };
 const MARKER = '<!-- prodverdict-comment -->';
 export function buildComment(result) {

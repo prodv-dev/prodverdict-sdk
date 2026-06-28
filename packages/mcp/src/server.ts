@@ -15,6 +15,7 @@ import {
   runBoundaryCheck,
   runWebhookCheck,
   runRestoreCheck,
+  runEntitlementsMigrationCheck,
   runAllChecks,
 } from './check-runner.js';
 import { registerPrompts } from './prompts.js';
@@ -113,8 +114,9 @@ server.tool(
 
 server.tool(
   'check_access_contract',
-  'Run the ProdVerdict access contract check. Compares billing subscription state against the app database ' +
-    'and returns deterministic findings. Use before PRs that touch billing or access-control logic.',
+  'Run the ProdVerdict access contract check. Compares billing subscription state (Stripe or Paddle) ' +
+    '— or active Stripe Entitlements grants — against the app database and returns deterministic findings. ' +
+    'Use before PRs that touch billing or access-control logic, or on a schedule for drift detection.',
   {
     configPath: configPathSchema,
     useFixtures: fixturesSchema,
@@ -225,6 +227,26 @@ server.tool(
   async ({ configPath, repoRoot }) => {
     try {
       const agent = await runRestoreCheck({
+        configPath: resolve(configPath ?? DEFAULT_CONFIG),
+        repoRoot,
+      });
+      return toolJson(agent);
+    } catch (err) {
+      return toolError(err);
+    }
+  },
+);
+
+server.tool(
+  'check_entitlements_migration_contract',
+  'Run the ProdVerdict entitlements-migration contract check. Verifies a migration from local DB has_paid_access flags to Stripe Entitlements — catches users paid in DB but not granted in Stripe, stale grants, duplicates, and users missing a stripe_customer_id. Requires STRIPE_SECRET_KEY (with entitlements.read) and DATABASE_URL.',
+  {
+    configPath: configPathSchema,
+    repoRoot: repoRootSchema,
+  },
+  async ({ configPath, repoRoot }) => {
+    try {
+      const agent = await runEntitlementsMigrationCheck({
         configPath: resolve(configPath ?? DEFAULT_CONFIG),
         repoRoot,
       });

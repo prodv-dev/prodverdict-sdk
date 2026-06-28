@@ -2,7 +2,7 @@ import { type AgentCheckOutput } from '@prodverdict/engine';
 export declare function runRemoteValidateConfig(configYaml: string): Promise<{
     valid: boolean;
     contracts: {
-        type: "access" | "config" | "migration" | "boundary" | "webhook" | "restore";
+        type: "access" | "config" | "migration" | "boundary" | "webhook" | "restore" | "entitlements-migration";
     }[];
 }>;
 export declare function runRemoteConfigCheck(opts: {

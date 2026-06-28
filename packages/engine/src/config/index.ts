@@ -8,5 +8,6 @@ export {
   type BoundaryContractConfig,
   type WebhookContractConfig,
   type RestoreContractConfig,
+  type EntitlementsMigrationContractConfig,
   type ConfigRule,
 } from './schema.js';

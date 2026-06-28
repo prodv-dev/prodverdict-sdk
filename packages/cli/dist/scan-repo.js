@@ -124,6 +124,12 @@ export function scanRepo(cwd) {
             reason: `${billing} vs database paid-access sync`,
         });
     }
+    if (stripeFound) {
+        recommendedContracts.push({
+            id: 'entitlements-migration',
+            reason: 'optional — verifies migration from local DB flags to Stripe Entitlements',
+        });
+    }
     if (envVarCount > 0) {
         recommendedContracts.push({
             id: 'config',
@@ -190,7 +196,12 @@ export function formatScanResult(result) {
     const stack = result.detectedStack && isStackTemplate(result.detectedStack)
         ? result.detectedStack
         : 'nextjs-stripe';
-    lines.push('\nNext:');
+    lines.push('');
+    lines.push(chalk.bold('Next:'));
+    lines.push(chalk.cyan(`  npx prodverdict setup`));
+    lines.push(chalk.dim('  (interactive wizard — billing key, DB role, config, scheduled workflow)'));
+    lines.push('');
+    lines.push(chalk.dim('Or, one-by-one:'));
     lines.push(chalk.cyan(`  npx prodverdict init --stack ${stack} --mcp --cursor-rule`));
     lines.push(chalk.dim('  npx prodverdict demo   # try the revenue-leak fixture first'));
     lines.push('');

@@ -1,9 +1,36 @@
 export type { Finding, CheckResult, Verdict, Severity, ContractType, ProdVerdictError } from './types.js';
 export { isProdVerdictError } from './types.js';
 export { parseConfigFile, parseConfigYaml, validateConfig } from './config/index.js';
-export type { ProdVerdictConfig, AccessContractConfig, ConfigContractConfig, ConfigRule } from './config/index.js';
-export type { StripeReader, StripeSubscription, DatabaseReader, AppUser } from './connectors/index.js';
-export { createLiveStripeReader, createLivePaddleReader, createLiveBillingReader, createLivePostgresReader, createFixtureStripeReader, createFixtureDatabaseReader, loadFixtureSubscriptions, loadFixtureUsers, defaultFixturePaths, assertSqlIdentifier, assertSqlIdentifiers } from './connectors/index.js';
+export type {
+  ProdVerdictConfig,
+  AccessContractConfig,
+  ConfigContractConfig,
+  ConfigRule,
+  EntitlementsMigrationContractConfig,
+} from './config/index.js';
+export type {
+  StripeReader,
+  StripeSubscription,
+  EntitlementsReader,
+  ActiveEntitlement,
+  DatabaseReader,
+  AppUser,
+} from './connectors/index.js';
+export {
+  createLiveStripeReader,
+  createLivePaddleReader,
+  createLiveEntitlementsReader,
+  createLiveBillingReader,
+  createLivePostgresReader,
+  createFixtureStripeReader,
+  createFixtureDatabaseReader,
+  createFixtureEntitlementsReader,
+  loadFixtureSubscriptions,
+  loadFixtureUsers,
+  defaultFixturePaths,
+  assertSqlIdentifier,
+  assertSqlIdentifiers,
+} from './connectors/index.js';
 export type { FixturePaths } from './connectors/index.js';
 export { evaluateAccess } from './evaluators/access.js';
 export type { AccessDataSources } from './evaluators/access.js';
@@ -17,6 +44,8 @@ export { evaluateWebhook } from './evaluators/webhook.js';
 export type { WebhookDataSources } from './evaluators/webhook.js';
 export { evaluateRestore } from './evaluators/restore.js';
 export type { RestoreDataSources, RestoreCommandResult } from './evaluators/restore.js';
+export { evaluateEntitlementsMigration } from './evaluators/entitlements-migration.js';
+export type { EntitlementsMigrationDataSources } from './evaluators/entitlements-migration.js';
 export { aggregateVerdict } from './verdict.js';
 export { runContracts, resolveCheckExitCode } from './run.js';
 export type { RunContractsOptions, RunContractsOutput, AccessSourceMode } from './run.js';

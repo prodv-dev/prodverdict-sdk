@@ -9,7 +9,10 @@ function makeConnectorError(message: string): Error & { code: 'CONNECTOR_ERROR' 
   return err;
 }
 
-export function createLivePostgresReader(cfg: AccessContractConfig): DatabaseReader {
+/** Shape required to construct a Postgres reader — just the database block. */
+type DatabaseConfig = Pick<AccessContractConfig, 'database'>;
+
+export function createLivePostgresReader(cfg: DatabaseConfig): DatabaseReader {
   const connectionString = process.env[cfg.database.url_env];
   if (!connectionString) {
     throw makeConnectorError(

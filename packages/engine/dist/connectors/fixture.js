@@ -13,4 +13,11 @@ export function createFixtureDatabaseReader(users) {
         },
     };
 }
+export function createFixtureEntitlementsReader(entitlements) {
+    return {
+        async listActiveEntitlements() {
+            return entitlements;
+        },
+    };
+}
 //# sourceMappingURL=fixture.js.map

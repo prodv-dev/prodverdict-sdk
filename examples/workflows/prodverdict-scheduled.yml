@@ -1,11 +1,19 @@
-# Example: nightly access contract check + Slack alert + dashboard upload
-# Copy to .github/workflows/prodverdict-scheduled.yml in your app repo
+# Example: scheduled access contract check + Slack alert + dashboard upload
+# Copy to .github/workflows/prodverdict-scheduled.yml in your app repo.
+#
+# Access is a SCHEDULED check, not a PR gate. Billing drift only exists after
+# the webhook fires in production. Run hourly (recommended) or daily.
+#
+# Generate a fresh copy with: npx prodverdict scheduled --frequency hourly
 
 name: ProdVerdict scheduled
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    # Hourly — recommended for production SaaS
+    - cron: '0 * * * *'
+    # Daily fallback — uncomment to use instead
+    # - cron: '0 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -14,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: prodv-dev/prodverdict-action@v0.7.0
+      - uses: prodv-dev/prodverdict-action@v0.12.0
         with:
           config: ./prodverdict.yml
           contract: access
@@ -22,6 +30,7 @@ jobs:
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Optional — upload runs to your Pro Cloud dashboard:
           PRODVERDICT_API_URL: https://prodverdict.com
           PRODVERDICT_API_KEY: ${{ secrets.PRODVERDICT_API_KEY }}
           PRODVERDICT_PROJECT_ID: ${{ secrets.PRODVERDICT_PROJECT_ID }}

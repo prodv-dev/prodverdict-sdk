@@ -25,6 +25,7 @@ const SUPPORTED_CONTRACTS = [
   'boundary',
   'webhook',
   'restore',
+  'entitlements-migration',
   'all',
 ] as const;
 
@@ -40,6 +41,8 @@ function contractLabel(contract: ContractType): string {
       return 'Webhook';
     case 'restore':
       return 'Restore';
+    case 'entitlements-migration':
+      return 'Entitlements Migration';
     default:
       return 'Access';
   }
@@ -54,7 +57,7 @@ async function run(): Promise<void> {
 
     if (!SUPPORTED_CONTRACTS.includes(contractInput as (typeof SUPPORTED_CONTRACTS)[number])) {
       core.setFailed(
-        `Unknown contract "${contractInput}". Supported: access, config, migration, boundary, webhook, restore, all.`,
+        `Unknown contract "${contractInput}". Supported: access, config, migration, boundary, webhook, restore, entitlements-migration, all.`,
       );
       return;
     }
@@ -65,14 +68,30 @@ async function run(): Promise<void> {
     const contractsFilter =
       contractInput === 'all'
         ? undefined
-        : [contractInput as 'access' | 'config' | 'migration' | 'boundary' | 'webhook' | 'restore'];
+        : [
+            contractInput as
+              | 'access'
+              | 'config'
+              | 'migration'
+              | 'boundary'
+              | 'webhook'
+              | 'restore'
+              | 'entitlements-migration',
+          ];
 
     if (contractInput === 'access') {
       const accessCfg = cfg.contracts.find((c) => c.type === 'access');
       if (accessCfg) {
-        const provider = accessCfg.source_of_truth === 'paddle' ? 'Paddle' : 'Stripe';
+        const provider =
+          accessCfg.source_of_truth === 'paddle'
+            ? 'Paddle'
+            : accessCfg.source_of_truth === 'stripe_entitlements'
+              ? 'Stripe Entitlements'
+              : 'Stripe';
         core.info(`Connecting to ${provider} and database (read-only)…`);
       }
+    } else if (contractInput === 'entitlements-migration') {
+      core.info('Running entitlements-migration contract check…');
     } else if (contractInput === 'config') {
       core.info('Running config contract check…');
     } else if (contractInput === 'migration') {

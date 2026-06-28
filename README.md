@@ -21,7 +21,23 @@ npx prodverdict demo
 
 You should see a **FAIL** verdict: user has an active Stripe subscription but `has_paid_access` is false (revenue leak).
 
-Then scan your repo and init:
+### Set up scheduled drift detection (recommended first install)
+
+Access is a scheduled check, not a PR gate — billing drift only exists after the webhook fires in production. Generate the workflow:
+
+```bash
+npx prodverdict scheduled --frequency hourly
+```
+
+Copy the output to `.github/workflows/prodverdict-access.yml`, then set these repo secrets:
+
+- `STRIPE_SECRET_KEY` — restricted key, `customers: Read` + `subscriptions: Read`
+- `DATABASE_URL` — read-only Postgres connection string
+- `SLACK_WEBHOOK_URL` — for fail alerts
+
+You now get hourly drift detection with Slack alerts. See [scheduled-vs-pr.md](../docs/scheduled-vs-pr.md) for why Access is scheduled and the other contracts are PR gates.
+
+### Scan your repo and init
 
 ```bash
 npx prodverdict scan
@@ -112,10 +128,10 @@ npx prodverdict validate --config prodverdict.yml
 ```yaml
 - uses: actions/checkout@v4
 
-- uses: prodv-dev/prodverdict-action@v0.10.0
+- uses: prodv-dev/prodverdict-action@v0.11.0
   with:
     config: ./prodverdict.yml
-    contract: access   # access | config | migration | boundary | webhook | restore | all
+    contract: access   # access | config | migration | boundary | webhook | restore | entitlements-migration | all
     strict: false
   env:
     STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_KEY }}
@@ -237,6 +253,67 @@ Each example with scenarios includes `pass` / `fail-revenue-leak` demos: `node e
 | `examples/rails-stripe` | Rails + Stripe (`users` table) |
 | `test-env/` | Docker Postgres + pass/fail scenario seeds |
 | `fixtures/` | Minimal fixture data for unit-style runs |
+
+## v0.12.0 — Easy UX + go-to-market assets
+
+**The big change:** the gap between "demo" and "running on real data" is now ~5 minutes. No docs required.
+
+**New CLI commands:**
+
+- `npx prodverdict setup` — interactive first-run wizard. Detects stack, prints Stripe restricted-key helper, prints Postgres read-only role SQL, writes `prodverdict.yml`, runs doctor + first check, writes the GitHub Actions workflow, writes Cursor MCP config. One command, ~5 minutes.
+- `npx prodverdict status` — one-glance health check. Shows what's configured (config, env vars, scheduled workflow, MCP) and what to do next.
+- `npx prodverdict scheduled --install` — writes the workflow file directly to `.github/workflows/` instead of printing to stdout.
+
+**Improved onboarding flow:**
+
+- `npx prodverdict demo` now ends with `npx prodverdict setup` as the next step (instead of telling you to read 4 docs).
+- `npx prodverdict scan` pre-fills the next init command with the detected stack and points to `setup` as the interactive path.
+
+**Go-to-market assets (in `docs/go-to-market/`):**
+
+- Track 1: founder-led outreach DM template + tracker (0 → 5 users)
+- Track 2: the "5 SaaS revenue leak study" template + `prodverdict.com/study` page (5 → 10 users)
+- Track 3: starter-kit partnership pitch template (10 → 100 users)
+
+**New landing page:** [prodverdict.com/study](https://prodverdict.com/study) — the public study page where redacted concierge findings will publish.
+
+```bash
+# The whole onboarding in one command:
+npx prodverdict setup
+
+# Then check your state any time:
+npx prodverdict status
+```
+
+See [docs/go-to-market/README.md](../docs/go-to-market/README.md) for the 0 → 100 users plan.
+
+## v0.11.0 — Stripe Entitlements migration wedge + scheduled-first positioning
+
+**The big change:** ProdVerdict now verifies migrations to Stripe Entitlements. Two new capabilities:
+
+1. **`entitlements-migration` contract** — catches users paid in DB but not granted in Stripe, stale grants, duplicates, and missing `stripe_customer_id`. Run it during migration; iterate until it passes.
+2. **Access contract with `source_of_truth: stripe_entitlements`** — verifies the steady state after migration. Compares active Entitlements grants against your DB on a schedule.
+
+**Positioning pivot:**
+
+- Access is now marketed as a **scheduled drift monitor**, not a PR gate. Billing drift only exists after the webhook fires in production — running Access on a PR is the wrong cadence.
+- New `prodverdict scheduled` subcommand prints the recommended GitHub Actions workflow for hourly/daily drift detection with Slack on fail.
+- Homepage now leads 100% with the Access wedge. The other 5 contracts are bundled OSS linters, not the product.
+- Pricing docs reconciled with the live 2-tier site (Free + Pro Cloud $39/project/mo).
+- AI-trust statistics removed from the pitch — ProdVerdict verifies production state, not AI-generated code.
+
+```bash
+# Generate a scheduled drift workflow
+npx prodverdict scheduled --frequency hourly
+
+# Verify a Stripe Entitlements migration
+npx prodverdict check entitlements-migration --config prodverdict.yml
+
+# Access with Entitlements source (steady state)
+npx prodverdict check access --config prodverdict.yml
+```
+
+See [Phase 6 design](../docs/phase-6-entitlements-design.md), [migration guide](../docs/entitlements-migration-guide.md), and [scheduled vs PR](../docs/scheduled-vs-pr.md).
 
 ## v0.10.0 — zero-friction discovery
 

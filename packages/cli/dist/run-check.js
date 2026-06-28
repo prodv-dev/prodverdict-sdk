@@ -8,6 +8,7 @@ const SUPPORTED_CONTRACTS = [
     'boundary',
     'webhook',
     'restore',
+    'entitlements-migration',
     'all',
 ];
 export async function runCheck(opts) {
@@ -15,7 +16,7 @@ export async function runCheck(opts) {
     const cfg = parseConfigFile(configPath);
     const contract = (opts.contract ?? 'access').toLowerCase();
     if (!SUPPORTED_CONTRACTS.includes(contract)) {
-        throw makeUsageError(`Unknown contract type "${contract}". Supported: access, config, migration, boundary, webhook, restore, all.`);
+        throw makeUsageError(`Unknown contract type "${contract}". Supported: access, config, migration, boundary, webhook, restore, entitlements-migration, all.`);
     }
     const accessSource = opts.fixtures
         ? 'fixtures'
@@ -29,7 +30,9 @@ export async function runCheck(opts) {
         env: process.env,
         contracts: contract === 'all'
             ? undefined
-            : [contract],
+            : [
+                contract,
+            ],
         accessSource,
         fixturesDir: opts.fixturesDir,
         fixturesStripeDir: opts.fixturesStripeDir,

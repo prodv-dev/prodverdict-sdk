@@ -19,6 +19,7 @@ const CONTRACT_LABEL: Record<CheckResult['contract'], string> = {
   boundary: 'Boundary Contract',
   webhook: 'Webhook Contract',
   restore: 'Restore Contract',
+  'entitlements-migration': 'Entitlements Migration Contract',
 };
 
 const MARKER = '<!-- prodverdict-comment -->';

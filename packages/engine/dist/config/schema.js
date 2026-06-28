@@ -18,10 +18,20 @@ const AccessStripeSchema = z.object({
 const AccessPaddleSchema = z.object({
     api_key_env: z.string().min(1).describe('Name of the env var holding PADDLE_API_KEY'),
 });
+const AccessEntitlementsSchema = z.object({
+    secret_env: z
+        .string()
+        .min(1)
+        .describe('Name of the env var holding STRIPE_SECRET_KEY with entitlements.read'),
+});
 const AccessContractBaseSchema = z.object({
     type: z.literal('access'),
     database: AccessDatabaseSchema,
-    /** Map of billing price ID -> plan slug used in the app */
+    /**
+     * Map of billing identifier -> plan slug used in the app.
+     * For `source_of_truth: stripe|paddle`, keys are price IDs.
+     * For `source_of_truth: stripe_entitlements`, keys are product IDs.
+     */
     plans: z.record(z.string(), z.string()).optional(),
     severity: SeveritySchema.default('high'),
     fix: z.string().optional(),
@@ -34,7 +44,15 @@ const AccessContractPaddleSchema = AccessContractBaseSchema.extend({
     source_of_truth: z.literal('paddle'),
     paddle: AccessPaddleSchema,
 });
-export const AccessContractSchema = z.union([AccessContractStripeSchema, AccessContractPaddleSchema]);
+const AccessContractEntitlementsSchema = AccessContractBaseSchema.extend({
+    source_of_truth: z.literal('stripe_entitlements'),
+    entitlements: AccessEntitlementsSchema,
+});
+export const AccessContractSchema = z.union([
+    AccessContractStripeSchema,
+    AccessContractPaddleSchema,
+    AccessContractEntitlementsSchema,
+]);
 // ── Config Contract ────────────────────────────────────────────────────────────
 const ConfigRuleSchema = z.discriminatedUnion('type', [
     z.object({
@@ -94,15 +112,35 @@ const RestoreContractSchema = z.object({
     severity: SeveritySchema.default('high'),
     fix: z.string().optional(),
 });
+// ── Entitlements Migration Contract ───────────────────────────────────────────
+// Verifies a migration from local DB has_paid_access flags to Stripe Entitlements.
+// Catches: users paid in DB but not granted in Stripe, stale grants, duplicates,
+// and users missing a stripe_customer_id (which blocks migration).
+const EntitlementsMigrationContractSchema = z.object({
+    type: z.literal('entitlements-migration'),
+    database: AccessDatabaseSchema,
+    entitlements: AccessEntitlementsSchema,
+    /**
+     * Map of Stripe product ID -> plan slug. Used to verify that users flagged as
+     * having a given plan in the DB are granted the corresponding product in Stripe.
+     */
+    plans: z.record(z.string(), z.string()).optional(),
+    /** When true, flag users with has_paid_access=true but no stripe_customer_id (high). */
+    require_stripe_customer_id: z.boolean().default(true),
+    severity: SeveritySchema.default('high'),
+    fix: z.string().optional(),
+});
 // ── Union ──────────────────────────────────────────────────────────────────────
 const ContractSchema = z.union([
     AccessContractStripeSchema,
     AccessContractPaddleSchema,
+    AccessContractEntitlementsSchema,
     ConfigContractSchema,
     MigrationContractSchema,
     BoundaryContractSchema,
     WebhookContractSchema,
     RestoreContractSchema,
+    EntitlementsMigrationContractSchema,
 ]);
 export const ProdVerdictConfigSchema = z.object({
     version: z.literal(1),

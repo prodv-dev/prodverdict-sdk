@@ -39,7 +39,11 @@ export declare const AccessContractSchema: z.ZodUnion<[z.ZodObject<{
             plan?: string | undefined;
         } | undefined;
     }>;
-    /** Map of billing price ID -> plan slug used in the app */
+    /**
+     * Map of billing identifier -> plan slug used in the app.
+     * For `source_of_truth: stripe|paddle`, keys are price IDs.
+     * For `source_of_truth: stripe_entitlements`, keys are product IDs.
+     */
     plans: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
     severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
     fix: z.ZodOptional<z.ZodString>;
@@ -130,7 +134,11 @@ export declare const AccessContractSchema: z.ZodUnion<[z.ZodObject<{
             plan?: string | undefined;
         } | undefined;
     }>;
-    /** Map of billing price ID -> plan slug used in the app */
+    /**
+     * Map of billing identifier -> plan slug used in the app.
+     * For `source_of_truth: stripe|paddle`, keys are price IDs.
+     * For `source_of_truth: stripe_entitlements`, keys are product IDs.
+     */
     plans: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
     severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
     fix: z.ZodOptional<z.ZodString>;
@@ -177,6 +185,101 @@ export declare const AccessContractSchema: z.ZodUnion<[z.ZodObject<{
     source_of_truth: "paddle";
     paddle: {
         api_key_env: string;
+    };
+    plans?: Record<string, string> | undefined;
+    severity?: "high" | "medium" | "low" | undefined;
+    fix?: string | undefined;
+}>, z.ZodObject<{
+    type: z.ZodLiteral<"access">;
+    database: z.ZodObject<{
+        url_env: z.ZodString;
+        users_table: z.ZodDefault<z.ZodString>;
+        columns: z.ZodDefault<z.ZodObject<{
+            id: z.ZodDefault<z.ZodString>;
+            stripe_customer_id: z.ZodDefault<z.ZodString>;
+            has_paid_access: z.ZodDefault<z.ZodString>;
+            plan: z.ZodDefault<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            id: string;
+            stripe_customer_id: string;
+            has_paid_access: string;
+            plan: string;
+        }, {
+            id?: string | undefined;
+            stripe_customer_id?: string | undefined;
+            has_paid_access?: string | undefined;
+            plan?: string | undefined;
+        }>>;
+    }, "strip", z.ZodTypeAny, {
+        url_env: string;
+        users_table: string;
+        columns: {
+            id: string;
+            stripe_customer_id: string;
+            has_paid_access: string;
+            plan: string;
+        };
+    }, {
+        url_env: string;
+        users_table?: string | undefined;
+        columns?: {
+            id?: string | undefined;
+            stripe_customer_id?: string | undefined;
+            has_paid_access?: string | undefined;
+            plan?: string | undefined;
+        } | undefined;
+    }>;
+    /**
+     * Map of billing identifier -> plan slug used in the app.
+     * For `source_of_truth: stripe|paddle`, keys are price IDs.
+     * For `source_of_truth: stripe_entitlements`, keys are product IDs.
+     */
+    plans: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+    fix: z.ZodOptional<z.ZodString>;
+} & {
+    source_of_truth: z.ZodLiteral<"stripe_entitlements">;
+    entitlements: z.ZodObject<{
+        secret_env: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        secret_env: string;
+    }, {
+        secret_env: string;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    type: "access";
+    database: {
+        url_env: string;
+        users_table: string;
+        columns: {
+            id: string;
+            stripe_customer_id: string;
+            has_paid_access: string;
+            plan: string;
+        };
+    };
+    severity: "high" | "medium" | "low";
+    source_of_truth: "stripe_entitlements";
+    entitlements: {
+        secret_env: string;
+    };
+    plans?: Record<string, string> | undefined;
+    fix?: string | undefined;
+}, {
+    type: "access";
+    database: {
+        url_env: string;
+        users_table?: string | undefined;
+        columns?: {
+            id?: string | undefined;
+            stripe_customer_id?: string | undefined;
+            has_paid_access?: string | undefined;
+            plan?: string | undefined;
+        } | undefined;
+    };
+    source_of_truth: "stripe_entitlements";
+    entitlements: {
+        secret_env: string;
     };
     plans?: Record<string, string> | undefined;
     severity?: "high" | "medium" | "low" | undefined;
@@ -380,6 +483,102 @@ declare const RestoreContractSchema: z.ZodObject<{
     command_env?: Record<string, string> | undefined;
 }>;
 export type RestoreContractConfig = z.infer<typeof RestoreContractSchema>;
+declare const EntitlementsMigrationContractSchema: z.ZodObject<{
+    type: z.ZodLiteral<"entitlements-migration">;
+    database: z.ZodObject<{
+        url_env: z.ZodString;
+        users_table: z.ZodDefault<z.ZodString>;
+        columns: z.ZodDefault<z.ZodObject<{
+            id: z.ZodDefault<z.ZodString>;
+            stripe_customer_id: z.ZodDefault<z.ZodString>;
+            has_paid_access: z.ZodDefault<z.ZodString>;
+            plan: z.ZodDefault<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            id: string;
+            stripe_customer_id: string;
+            has_paid_access: string;
+            plan: string;
+        }, {
+            id?: string | undefined;
+            stripe_customer_id?: string | undefined;
+            has_paid_access?: string | undefined;
+            plan?: string | undefined;
+        }>>;
+    }, "strip", z.ZodTypeAny, {
+        url_env: string;
+        users_table: string;
+        columns: {
+            id: string;
+            stripe_customer_id: string;
+            has_paid_access: string;
+            plan: string;
+        };
+    }, {
+        url_env: string;
+        users_table?: string | undefined;
+        columns?: {
+            id?: string | undefined;
+            stripe_customer_id?: string | undefined;
+            has_paid_access?: string | undefined;
+            plan?: string | undefined;
+        } | undefined;
+    }>;
+    entitlements: z.ZodObject<{
+        secret_env: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        secret_env: string;
+    }, {
+        secret_env: string;
+    }>;
+    /**
+     * Map of Stripe product ID -> plan slug. Used to verify that users flagged as
+     * having a given plan in the DB are granted the corresponding product in Stripe.
+     */
+    plans: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    /** When true, flag users with has_paid_access=true but no stripe_customer_id (high). */
+    require_stripe_customer_id: z.ZodDefault<z.ZodBoolean>;
+    severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+    fix: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    type: "entitlements-migration";
+    database: {
+        url_env: string;
+        users_table: string;
+        columns: {
+            id: string;
+            stripe_customer_id: string;
+            has_paid_access: string;
+            plan: string;
+        };
+    };
+    severity: "high" | "medium" | "low";
+    entitlements: {
+        secret_env: string;
+    };
+    require_stripe_customer_id: boolean;
+    plans?: Record<string, string> | undefined;
+    fix?: string | undefined;
+}, {
+    type: "entitlements-migration";
+    database: {
+        url_env: string;
+        users_table?: string | undefined;
+        columns?: {
+            id?: string | undefined;
+            stripe_customer_id?: string | undefined;
+            has_paid_access?: string | undefined;
+            plan?: string | undefined;
+        } | undefined;
+    };
+    entitlements: {
+        secret_env: string;
+    };
+    plans?: Record<string, string> | undefined;
+    severity?: "high" | "medium" | "low" | undefined;
+    fix?: string | undefined;
+    require_stripe_customer_id?: boolean | undefined;
+}>;
+export type EntitlementsMigrationContractConfig = z.infer<typeof EntitlementsMigrationContractSchema>;
 export declare const ProdVerdictConfigSchema: z.ZodObject<{
     version: z.ZodLiteral<1>;
     contracts: z.ZodArray<z.ZodUnion<[z.ZodObject<{
@@ -422,7 +621,11 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
                 plan?: string | undefined;
             } | undefined;
         }>;
-        /** Map of billing price ID -> plan slug used in the app */
+        /**
+         * Map of billing identifier -> plan slug used in the app.
+         * For `source_of_truth: stripe|paddle`, keys are price IDs.
+         * For `source_of_truth: stripe_entitlements`, keys are product IDs.
+         */
         plans: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
         severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
         fix: z.ZodOptional<z.ZodString>;
@@ -513,7 +716,11 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
                 plan?: string | undefined;
             } | undefined;
         }>;
-        /** Map of billing price ID -> plan slug used in the app */
+        /**
+         * Map of billing identifier -> plan slug used in the app.
+         * For `source_of_truth: stripe|paddle`, keys are price IDs.
+         * For `source_of_truth: stripe_entitlements`, keys are product IDs.
+         */
         plans: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
         severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
         fix: z.ZodOptional<z.ZodString>;
@@ -560,6 +767,101 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         source_of_truth: "paddle";
         paddle: {
             api_key_env: string;
+        };
+        plans?: Record<string, string> | undefined;
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"access">;
+        database: z.ZodObject<{
+            url_env: z.ZodString;
+            users_table: z.ZodDefault<z.ZodString>;
+            columns: z.ZodDefault<z.ZodObject<{
+                id: z.ZodDefault<z.ZodString>;
+                stripe_customer_id: z.ZodDefault<z.ZodString>;
+                has_paid_access: z.ZodDefault<z.ZodString>;
+                plan: z.ZodDefault<z.ZodString>;
+            }, "strip", z.ZodTypeAny, {
+                id: string;
+                stripe_customer_id: string;
+                has_paid_access: string;
+                plan: string;
+            }, {
+                id?: string | undefined;
+                stripe_customer_id?: string | undefined;
+                has_paid_access?: string | undefined;
+                plan?: string | undefined;
+            }>>;
+        }, "strip", z.ZodTypeAny, {
+            url_env: string;
+            users_table: string;
+            columns: {
+                id: string;
+                stripe_customer_id: string;
+                has_paid_access: string;
+                plan: string;
+            };
+        }, {
+            url_env: string;
+            users_table?: string | undefined;
+            columns?: {
+                id?: string | undefined;
+                stripe_customer_id?: string | undefined;
+                has_paid_access?: string | undefined;
+                plan?: string | undefined;
+            } | undefined;
+        }>;
+        /**
+         * Map of billing identifier -> plan slug used in the app.
+         * For `source_of_truth: stripe|paddle`, keys are price IDs.
+         * For `source_of_truth: stripe_entitlements`, keys are product IDs.
+         */
+        plans: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+        fix: z.ZodOptional<z.ZodString>;
+    } & {
+        source_of_truth: z.ZodLiteral<"stripe_entitlements">;
+        entitlements: z.ZodObject<{
+            secret_env: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            secret_env: string;
+        }, {
+            secret_env: string;
+        }>;
+    }, "strip", z.ZodTypeAny, {
+        type: "access";
+        database: {
+            url_env: string;
+            users_table: string;
+            columns: {
+                id: string;
+                stripe_customer_id: string;
+                has_paid_access: string;
+                plan: string;
+            };
+        };
+        severity: "high" | "medium" | "low";
+        source_of_truth: "stripe_entitlements";
+        entitlements: {
+            secret_env: string;
+        };
+        plans?: Record<string, string> | undefined;
+        fix?: string | undefined;
+    }, {
+        type: "access";
+        database: {
+            url_env: string;
+            users_table?: string | undefined;
+            columns?: {
+                id?: string | undefined;
+                stripe_customer_id?: string | undefined;
+                has_paid_access?: string | undefined;
+                plan?: string | undefined;
+            } | undefined;
+        };
+        source_of_truth: "stripe_entitlements";
+        entitlements: {
+            secret_env: string;
         };
         plans?: Record<string, string> | undefined;
         severity?: "high" | "medium" | "low" | undefined;
@@ -719,6 +1021,100 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         fix?: string | undefined;
         smoke_queries?: string[] | undefined;
         command_env?: Record<string, string> | undefined;
+    }>, z.ZodObject<{
+        type: z.ZodLiteral<"entitlements-migration">;
+        database: z.ZodObject<{
+            url_env: z.ZodString;
+            users_table: z.ZodDefault<z.ZodString>;
+            columns: z.ZodDefault<z.ZodObject<{
+                id: z.ZodDefault<z.ZodString>;
+                stripe_customer_id: z.ZodDefault<z.ZodString>;
+                has_paid_access: z.ZodDefault<z.ZodString>;
+                plan: z.ZodDefault<z.ZodString>;
+            }, "strip", z.ZodTypeAny, {
+                id: string;
+                stripe_customer_id: string;
+                has_paid_access: string;
+                plan: string;
+            }, {
+                id?: string | undefined;
+                stripe_customer_id?: string | undefined;
+                has_paid_access?: string | undefined;
+                plan?: string | undefined;
+            }>>;
+        }, "strip", z.ZodTypeAny, {
+            url_env: string;
+            users_table: string;
+            columns: {
+                id: string;
+                stripe_customer_id: string;
+                has_paid_access: string;
+                plan: string;
+            };
+        }, {
+            url_env: string;
+            users_table?: string | undefined;
+            columns?: {
+                id?: string | undefined;
+                stripe_customer_id?: string | undefined;
+                has_paid_access?: string | undefined;
+                plan?: string | undefined;
+            } | undefined;
+        }>;
+        entitlements: z.ZodObject<{
+            secret_env: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            secret_env: string;
+        }, {
+            secret_env: string;
+        }>;
+        /**
+         * Map of Stripe product ID -> plan slug. Used to verify that users flagged as
+         * having a given plan in the DB are granted the corresponding product in Stripe.
+         */
+        plans: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        /** When true, flag users with has_paid_access=true but no stripe_customer_id (high). */
+        require_stripe_customer_id: z.ZodDefault<z.ZodBoolean>;
+        severity: z.ZodDefault<z.ZodEnum<["high", "medium", "low"]>>;
+        fix: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        type: "entitlements-migration";
+        database: {
+            url_env: string;
+            users_table: string;
+            columns: {
+                id: string;
+                stripe_customer_id: string;
+                has_paid_access: string;
+                plan: string;
+            };
+        };
+        severity: "high" | "medium" | "low";
+        entitlements: {
+            secret_env: string;
+        };
+        require_stripe_customer_id: boolean;
+        plans?: Record<string, string> | undefined;
+        fix?: string | undefined;
+    }, {
+        type: "entitlements-migration";
+        database: {
+            url_env: string;
+            users_table?: string | undefined;
+            columns?: {
+                id?: string | undefined;
+                stripe_customer_id?: string | undefined;
+                has_paid_access?: string | undefined;
+                plan?: string | undefined;
+            } | undefined;
+        };
+        entitlements: {
+            secret_env: string;
+        };
+        plans?: Record<string, string> | undefined;
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+        require_stripe_customer_id?: boolean | undefined;
     }>]>, "many">;
 }, "strip", z.ZodTypeAny, {
     contracts: ({
@@ -756,6 +1152,25 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         source_of_truth: "paddle";
         paddle: {
             api_key_env: string;
+        };
+        plans?: Record<string, string> | undefined;
+        fix?: string | undefined;
+    } | {
+        type: "access";
+        database: {
+            url_env: string;
+            users_table: string;
+            columns: {
+                id: string;
+                stripe_customer_id: string;
+                has_paid_access: string;
+                plan: string;
+            };
+        };
+        severity: "high" | "medium" | "low";
+        source_of_truth: "stripe_entitlements";
+        entitlements: {
+            secret_env: string;
         };
         plans?: Record<string, string> | undefined;
         fix?: string | undefined;
@@ -804,6 +1219,25 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         smoke_queries: string[];
         fix?: string | undefined;
         command_env?: Record<string, string> | undefined;
+    } | {
+        type: "entitlements-migration";
+        database: {
+            url_env: string;
+            users_table: string;
+            columns: {
+                id: string;
+                stripe_customer_id: string;
+                has_paid_access: string;
+                plan: string;
+            };
+        };
+        severity: "high" | "medium" | "low";
+        entitlements: {
+            secret_env: string;
+        };
+        require_stripe_customer_id: boolean;
+        plans?: Record<string, string> | undefined;
+        fix?: string | undefined;
     })[];
     version: 1;
 }, {
@@ -841,6 +1275,25 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         source_of_truth: "paddle";
         paddle: {
             api_key_env: string;
+        };
+        plans?: Record<string, string> | undefined;
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+    } | {
+        type: "access";
+        database: {
+            url_env: string;
+            users_table?: string | undefined;
+            columns?: {
+                id?: string | undefined;
+                stripe_customer_id?: string | undefined;
+                has_paid_access?: string | undefined;
+                plan?: string | undefined;
+            } | undefined;
+        };
+        source_of_truth: "stripe_entitlements";
+        entitlements: {
+            secret_env: string;
         };
         plans?: Record<string, string> | undefined;
         severity?: "high" | "medium" | "low" | undefined;
@@ -890,6 +1343,25 @@ export declare const ProdVerdictConfigSchema: z.ZodObject<{
         fix?: string | undefined;
         smoke_queries?: string[] | undefined;
         command_env?: Record<string, string> | undefined;
+    } | {
+        type: "entitlements-migration";
+        database: {
+            url_env: string;
+            users_table?: string | undefined;
+            columns?: {
+                id?: string | undefined;
+                stripe_customer_id?: string | undefined;
+                has_paid_access?: string | undefined;
+                plan?: string | undefined;
+            } | undefined;
+        };
+        entitlements: {
+            secret_env: string;
+        };
+        plans?: Record<string, string> | undefined;
+        severity?: "high" | "medium" | "low" | undefined;
+        fix?: string | undefined;
+        require_stripe_customer_id?: boolean | undefined;
     })[];
     version: 1;
 }>;

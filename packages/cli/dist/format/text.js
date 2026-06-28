@@ -58,10 +58,23 @@ export function formatTextResult(result, options) {
     lines.push(`\nProdVerdict · ${result.contract} contract · ${verdictLabel}`);
     lines.push(`Evaluated at: ${result.evaluatedAt}\n`);
     lines.push(...formatFindings(result.findings));
+    if (result.contract === 'access') {
+        lines.push(formatAccessCadenceHint());
+    }
     if (result.verdict === 'fail' && options?.showInitCallout !== false) {
         lines.push(formatFailCallout(result.contract));
     }
     return lines.join('\n');
+}
+function formatAccessCadenceHint() {
+    return [
+        chalk.dim('─'.repeat(60)),
+        chalk.dim('Tip: Access is most valuable as a scheduled check, not a PR gate — drift'),
+        chalk.dim('only exists after the webhook fires in production.'),
+        chalk.dim('  Schedule it:  npx prodverdict scheduled --frequency hourly'),
+        chalk.dim('─'.repeat(60)),
+        '',
+    ].join('\n');
 }
 function formatFailCallout(contract) {
     if (contract !== 'access')

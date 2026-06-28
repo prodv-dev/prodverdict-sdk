@@ -11,6 +11,10 @@ import { STACK_ORDER, formatStackListTable, initNextSteps, isStackTemplate, } fr
 import { runDemo, isDemoStack } from './demo-cli.js';
 import { resolveInitStack } from './detect-stack.js';
 import { formatScanResult, scanRepo } from './scan-repo.js';
+import { registerScheduledCommand } from './scheduled-cli.js';
+import { registerSetupCommand } from './setup-cli.js';
+import { registerStatusCommand } from './status-cli.js';
+import { CLI_VERSION } from './version.js';
 if (process.env.NO_COLOR !== undefined) {
     chalk.level = 0;
 }
@@ -18,7 +22,7 @@ const program = new Command();
 program
     .name('prodverdict')
     .description('Deterministic production contract verification for AI-assisted SaaS')
-    .version('0.10.0');
+    .version(CLI_VERSION);
 program
     .command('demo')
     .description('Run the revenue-leak access fixture demo — no credentials, no git clone.')
@@ -47,7 +51,7 @@ program
 });
 program
     .command('check [contract]')
-    .description('Run contract checks: access (default), config, migration, boundary, webhook, restore, or all. Use --format json|agent for machine-readable output.')
+    .description('Run contract checks: access (default), config, migration, boundary, webhook, restore, entitlements-migration, or all. Use --format json|agent for machine-readable output.')
     .option('-c, --config <path>', 'Path to prodverdict.yml', './prodverdict.yml')
     .option('-f, --format <format>', 'Output format: text, json, or agent', 'text')
     .option('--fixtures', 'Use fixture JSON from fixtures/ instead of live credentials')
@@ -185,6 +189,9 @@ program
     }
     process.exit(0);
 });
+registerScheduledCommand(program);
+registerSetupCommand(program);
+registerStatusCommand(program);
 program
     .command('validate')
     .description('Parse and validate prodverdict.yml without running checks.')

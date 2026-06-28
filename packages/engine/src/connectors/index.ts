@@ -1,9 +1,10 @@
-export type { StripeReader, StripeSubscription, DatabaseReader, AppUser } from './types.js';
+export type { StripeReader, StripeSubscription, EntitlementsReader, ActiveEntitlement, DatabaseReader, AppUser } from './types.js';
 export { createLiveStripeReader } from './stripe-live.js';
 export { createLivePaddleReader, resolvePaddleEnvironment } from './paddle-live.js';
+export { createLiveEntitlementsReader } from './entitlements-live.js';
 export { createLiveBillingReader } from './billing-reader.js';
 export { createLivePostgresReader } from './postgres-live.js';
-export { createFixtureStripeReader, createFixtureDatabaseReader } from './fixture.js';
+export { createFixtureStripeReader, createFixtureDatabaseReader, createFixtureEntitlementsReader } from './fixture.js';
 export { loadFixtureSubscriptions, loadFixtureUsers, defaultFixturePaths } from './load-fixtures.js';
 export type { FixturePaths } from './load-fixtures.js';
 export { assertSqlIdentifier, assertSqlIdentifiers } from './sql-identifiers.js';

@@ -1,6 +1,6 @@
 ## Product Phases
 
-**Implementation status (2026-06):** Phases 1–3 shipped; **v0.9** adds Boundary, Webhook, and Restore contracts plus unified `runContracts()` dispatcher. **v0.10.0** adds zero-friction discovery (`demo`, `scan`, init auto-detect). MCP v0.6–v0.8 local/remote agent tooling shipped. Cloud: policy templates + audit log (v0.9).
+**Implementation status (2026-06):** Phases 1–3 shipped; **v0.9** adds Boundary, Webhook, and Restore contracts plus unified `runContracts()` dispatcher. **v0.10.0** adds zero-friction discovery (`demo`, `scan`, init auto-detect). MCP v0.6–v0.8 local/remote agent tooling shipped. Cloud: policy templates + audit log (v0.9). **v0.11.0** adds the Stripe Entitlements migration wedge (`entitlements-migration` contract + `stripe_entitlements` Access source), `prodverdict scheduled` subcommand, and scheduled-first positioning.
 
 The ProdVerdict vision revolves around building a **production contract system** for AI‑assisted development.  The effort is sequenced into clear phases, each delivering a standalone contract with immediate value while laying the groundwork for a unified platform.
 
@@ -54,3 +54,16 @@ Each phase is designed to deliver value on its own and to integrate into the uni
 * **`npx prodverdict scan`** — static repo analysis; recommends contracts from package.json and source layout.
 * **`init` auto-detect** — infers stack from `package.json` when `--stack` is omitted.
 * **Docs refresh** — story-first concept doc, getting-started guide, homepage hero focused on billing reconciliation.
+
+### v0.11.0 — Stripe Entitlements migration wedge (2026-06)
+
+**Goal:** convert the biggest existential threat (Stripe Entitlements absorbing the "DB disagrees with Stripe" category) into the defensible moat. Be the tool that verifies migrations TO Stripe Entitlements.
+
+* **`entitlements-migration` contract** — catches users paid in DB but not granted in Stripe (high), stale grants (medium), duplicate grants per customer (medium), and users missing `stripe_customer_id` (high, blocks migration).
+* **Access contract with `source_of_truth: stripe_entitlements`** — verifies the steady state after migration. Compares active Entitlements grants against the DB.
+* **`prodverdict scheduled` subcommand** — prints the recommended GitHub Actions workflow for scheduled drift detection. Access is a scheduled check, not a PR gate.
+* **Scheduled-first positioning** — README quickstart leads with scheduled drift detection, not PR gates. See `scheduled-vs-pr.md`.
+* **Pricing reconciliation** — docs now match the live 2-tier site (Free + Pro Cloud $39/project/mo).
+* **AI-trust framing removed** — ProdVerdict verifies production state, not AI-generated code. The pitch leads with billing drift.
+
+See [phase-6-entitlements-design.md](phase-6-entitlements-design.md) and [entitlements-migration-guide.md](entitlements-migration-guide.md).

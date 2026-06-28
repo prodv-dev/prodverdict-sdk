@@ -82,6 +82,17 @@ export async function runRestoreCheck(opts: RunContractOptions): Promise<AgentCh
   return toAgentCheckOutput(result, result.verdict === 'fail' ? 1 : 0);
 }
 
+export async function runEntitlementsMigrationCheck(
+  opts: RunContractOptions,
+): Promise<AgentCheckOutput> {
+  const output = await runContracts({
+    ...baseOpts(opts),
+    contracts: ['entitlements-migration'],
+  });
+  const result = output.results[0]!;
+  return toAgentCheckOutput(result, result.verdict === 'fail' ? 1 : 0);
+}
+
 export async function runAllChecks(opts: RunContractOptions): Promise<AgentAggregateOutput> {
   const output = await runContracts(baseOpts(opts));
   const exitCode = output.verdict === 'fail' ? 1 : 0;

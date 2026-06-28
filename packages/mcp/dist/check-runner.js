@@ -60,6 +60,14 @@ export async function runRestoreCheck(opts) {
     const result = output.results[0];
     return toAgentCheckOutput(result, result.verdict === 'fail' ? 1 : 0);
 }
+export async function runEntitlementsMigrationCheck(opts) {
+    const output = await runContracts({
+        ...baseOpts(opts),
+        contracts: ['entitlements-migration'],
+    });
+    const result = output.results[0];
+    return toAgentCheckOutput(result, result.verdict === 'fail' ? 1 : 0);
+}
 export async function runAllChecks(opts) {
     const output = await runContracts(baseOpts(opts));
     const exitCode = output.verdict === 'fail' ? 1 : 0;

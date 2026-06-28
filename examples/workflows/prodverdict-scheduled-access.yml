@@ -1,0 +1,26 @@
+# Minimal: hourly billing drift detection with Slack on fail.
+# This is the recommended first install for any SaaS using Stripe + Postgres.
+#
+# Generate a fresh copy with: npx prodverdict scheduled --frequency hourly
+
+name: ProdVerdict access
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prodv-dev/prodverdict-action@v0.12.0
+        with:
+          config: ./prodverdict.yml
+          contract: access
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

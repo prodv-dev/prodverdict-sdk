@@ -1,6 +1,13 @@
 export type Severity = 'high' | 'medium' | 'low';
 export type Verdict = 'pass' | 'warn' | 'fail';
-export type ContractType = 'access' | 'config' | 'migration' | 'boundary' | 'webhook' | 'restore';
+export type ContractType =
+  | 'access'
+  | 'config'
+  | 'migration'
+  | 'boundary'
+  | 'webhook'
+  | 'restore'
+  | 'entitlements-migration';
 
 export interface Finding {
   contract: ContractType;

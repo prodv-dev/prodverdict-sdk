@@ -1,5 +1,5 @@
 name: ProdVerdict
-description: Deterministic Stripe vs database access checks for AI-assisted SaaS. Catch revenue leaks in CI.
+description: Deterministic billing drift detection for SaaS. Catches Stripe vs database disagreements, env drift, unsafe migrations, and more — in CI or on a schedule.
 author: prodv-dev
 branding:
   icon: shield
@@ -11,7 +11,7 @@ inputs:
     required: false
     default: ./prodverdict.yml
   contract:
-    description: Contract to run — access, config, migration, boundary, webhook, restore, or all
+    description: Contract to run — access, config, migration, boundary, webhook, restore, entitlements-migration, or all
     required: false
     default: access
   strict:

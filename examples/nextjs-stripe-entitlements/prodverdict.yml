@@ -1,0 +1,55 @@
+version: 1
+# Example: Next.js + Stripe with Stripe Entitlements as the source of truth.
+#
+# This config demonstrates two contracts:
+#   1. entitlements-migration — verifies your migration from local DB flags
+#      to Stripe Entitlements is complete. Run during migration.
+#   2. access (source_of_truth: stripe_entitlements) — verifies the steady
+#      state after migration. Run on a schedule.
+#
+# During migration: keep both contracts in this file and run
+#   `npx prodverdict check entitlements-migration` until it passes.
+# After migration: remove the entitlements-migration contract and keep the
+#   access contract running on a schedule.
+contracts:
+  # ── Migration verification (run during migration, remove after) ──
+  - type: entitlements-migration
+    database:
+      url_env: DATABASE_URL
+      users_table: users
+      columns:
+        id: id
+        stripe_customer_id: stripe_customer_id
+        has_paid_access: has_paid_access
+        plan: plan
+    entitlements:
+      secret_env: STRIPE_SECRET_KEY
+    require_stripe_customer_id: true
+    severity: high
+    fix: >
+      Grant the corresponding Entitlements feature in Stripe for this user,
+      then flip has_paid_access in the DB only after the grant is confirmed.
+
+  # ── Steady-state verification (run on a schedule after migration) ──
+  - type: access
+    source_of_truth: stripe_entitlements
+    database:
+      url_env: DATABASE_URL
+      users_table: users
+      columns:
+        id: id
+        stripe_customer_id: stripe_customer_id
+        has_paid_access: has_paid_access
+        plan: plan
+    entitlements:
+      secret_env: STRIPE_SECRET_KEY
+    # Maps the Entitlements feature lookup_key to plan slug.
+    # Skip this block to disable plan-drift checks.
+    plans:
+      pro: pro
+      starter: starter
+    severity: high
+    fix: >
+      Read has_paid_access from the Stripe Entitlements API at request time.
+      Do not flip the DB flag from webhook handlers — Entitlements is the
+      source of truth now.

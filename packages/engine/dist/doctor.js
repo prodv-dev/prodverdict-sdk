@@ -17,6 +17,9 @@ function collectAccessEnvVars(accessCfg) {
     if (accessCfg.source_of_truth === 'paddle') {
         vars.push(accessCfg.paddle.api_key_env);
     }
+    else if (accessCfg.source_of_truth === 'stripe_entitlements') {
+        vars.push(accessCfg.entitlements.secret_env);
+    }
     else {
         vars.push(accessCfg.stripe.secret_env);
     }
@@ -113,6 +116,20 @@ export async function runDoctor(opts) {
                         checks.push(check('access:paddle_ping', 'skip', `Skipped — ${contract.paddle.api_key_env} not set.`));
                     }
                 }
+                else if (contract.source_of_truth === 'stripe_entitlements') {
+                    if (envSet(env, contract.entitlements.secret_env)) {
+                        try {
+                            await pingStripe(contract.entitlements.secret_env, env);
+                            checks.push(check('access:stripe_entitlements_ping', 'pass', 'Stripe Entitlements API connection succeeded.'));
+                        }
+                        catch (err) {
+                            checks.push(check('access:stripe_entitlements_ping', 'fail', `Stripe Entitlements API failed: ${String(err)}`));
+                        }
+                    }
+                    else {
+                        checks.push(check('access:stripe_entitlements_ping', 'skip', `Skipped — ${contract.entitlements.secret_env} not set.`));
+                    }
+                }
                 else if (envSet(env, contract.stripe.secret_env)) {
                     try {
                         await pingStripe(contract.stripe.secret_env, env);
@@ -148,6 +165,31 @@ export async function runDoctor(opts) {
         }
         if (contract.type === 'migration') {
             checks.push(check('migration:paths', 'pass', `Migration contract configured with ${contract.paths.length} path pattern(s).`));
+        }
+        if (contract.type === 'entitlements-migration') {
+            const vars = [contract.database.url_env, contract.entitlements.secret_env];
+            checks.push(...envVarChecks(env, vars, 'entitlements-migration'));
+            if (!opts.skipConnectivity) {
+                const dbUrl = env[contract.database.url_env];
+                if (dbUrl) {
+                    try {
+                        await pingDatabase(dbUrl);
+                        checks.push(check('entitlements-migration:database_ping', 'pass', 'Database connection succeeded.'));
+                    }
+                    catch (err) {
+                        checks.push(check('entitlements-migration:database_ping', 'fail', `Database connection failed: ${String(err)}`));
+                    }
+                }
+                if (envSet(env, contract.entitlements.secret_env)) {
+                    try {
+                        await pingStripe(contract.entitlements.secret_env, env);
+                        checks.push(check('entitlements-migration:stripe_ping', 'pass', 'Stripe Entitlements API connection succeeded.'));
+                    }
+                    catch (err) {
+                        checks.push(check('entitlements-migration:stripe_ping', 'fail', `Stripe Entitlements API failed: ${String(err)}`));
+                    }
+                }
+            }
         }
     }
     const ok = !checks.some((c) => c.status === 'fail');

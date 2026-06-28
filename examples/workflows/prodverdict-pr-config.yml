@@ -1,21 +1,27 @@
-# Run config contract on pull requests (env drift / missing secrets).
-# Copy to .github/workflows/prodverdict-config.yml in your app repo.
-name: ProdVerdict Config
+# Run config, migration, boundary, and webhook contracts on pull requests.
+# These are PR-gate lint checks — they catch issues in the diff before merge.
+#
+# NOTE: Access is NOT a PR gate. Access compares live Stripe vs live DB state,
+# which only makes sense on a schedule. Use prodverdict-scheduled-access.yml
+# for the Access contract.
+#
+# Copy to .github/workflows/prodverdict-pr.yml in your app repo.
+name: ProdVerdict PR checks
 
 on:
   pull_request:
   workflow_dispatch:
 
 jobs:
-  config:
+  pr-contracts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: prodv-dev/prodverdict-action@v0.7.0
+      - uses: prodv-dev/prodverdict-action@v0.12.0
         with:
           config: ./prodverdict.yml
-          contract: config
+          contract: all
           strict: false
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

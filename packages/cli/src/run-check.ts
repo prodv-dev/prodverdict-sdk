@@ -39,6 +39,7 @@ const SUPPORTED_CONTRACTS = [
   'boundary',
   'webhook',
   'restore',
+  'entitlements-migration',
   'all',
 ] as const;
 
@@ -51,7 +52,7 @@ export async function runCheck(
 
   if (!SUPPORTED_CONTRACTS.includes(contract as (typeof SUPPORTED_CONTRACTS)[number])) {
     throw makeUsageError(
-      `Unknown contract type "${contract}". Supported: access, config, migration, boundary, webhook, restore, all.`,
+      `Unknown contract type "${contract}". Supported: access, config, migration, boundary, webhook, restore, entitlements-migration, all.`,
     );
   }
 
@@ -69,7 +70,16 @@ export async function runCheck(
     contracts:
       contract === 'all'
         ? undefined
-        : [contract as 'access' | 'config' | 'migration' | 'boundary' | 'webhook' | 'restore'],
+        : [
+            contract as
+              | 'access'
+              | 'config'
+              | 'migration'
+              | 'boundary'
+              | 'webhook'
+              | 'restore'
+              | 'entitlements-migration',
+          ],
     accessSource,
     fixturesDir: opts.fixturesDir,
     fixturesStripeDir: opts.fixturesStripeDir,

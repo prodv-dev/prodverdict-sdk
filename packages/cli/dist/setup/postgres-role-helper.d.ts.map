@@ -1,0 +1,1 @@
+{"version":3,"file":"postgres-role-helper.d.ts","sourceRoot":"","sources":["../../src/setup/postgres-role-helper.ts"],"names":[],"mappings":"AAGA,MAAM,WAAW,oBAAoB;IACnC,MAAM,EAAE,MAAM,CAAC;IACf,UAAU,EAAE,OAAO,CAAC;CACrB;AAED,+EAA+E;AAC/E,wBAAgB,kBAAkB,CAAC,KAAK,EAAE,MAAM,GAAG,MAAM,CAGxD;AAED;;;GAGG;AACH,wBAAsB,qBAAqB,CACzC,KAAK,EAAE,MAAM,GACZ,OAAO,CAAC,oBAAoB,CAAC,CAiD/B"}
